@@ -95,7 +95,9 @@ class Gofer2FA {
     /**
      * Search the mailbox once for the most recent matching code for a site.
      */
-    public function fetchCode( string $siteKey, ?DateTimeInterface $since = NULL, int $limit = 25 ): ?TwoFactorCode {
+    public function fetchCode( string $siteKey,
+                               ?DateTimeInterface $since = NULL,
+                               int $limit = 25 ): ?TwoFactorCode {
         $site = $this->siteRegistry->get( $siteKey );
         $query = $site instanceof MessageMatchingChallengeSiteInterface
             ? $site->messageQuery( $since, $limit )
