@@ -29,6 +29,7 @@ use DPRMC\Gofer2FA\ValueObjects\TwoFactorCode;
 class Gofer2FA {
     private MailboxClientInterface $mailboxClient;
     private ChallengeSiteRegistry  $siteRegistry;
+    private bool                   $debug = FALSE;
 
     /**
      * Create the main 2FA service with a mailbox client and optional site registry.
@@ -74,6 +75,15 @@ class Gofer2FA {
     }
 
     /**
+     * Enable or disable console debug output for mailbox checks.
+     */
+    public function setDebug( bool $debug = TRUE ): self {
+        $this->debug = $debug;
+
+        return $this;
+    }
+
+    /**
      * Return all currently registered site parsers.
      *
      * @return array<string, \DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface>
@@ -90,16 +100,19 @@ class Gofer2FA {
         $query = $site instanceof MessageMatchingChallengeSiteInterface
             ? $site->messageQuery( $since, $limit )
             : new MessageQuery( $site->senderAddresses(), $since, $limit );
+        $rows = [];
+        $resolvedCode = NULL;
 
-        foreach ( $this->mailboxClient->findMessages( $query ) as $message ) {
-            if ( !$this->messageMatchesSite( $message, $site, $since ) ) {
-                continue;
-            }
+        $this->debugFetchContext( $site, $query );
 
-            $code = $site->parseCode( $message );
+        foreach ( $this->mailboxClient->findMessages( $query ) as $index => $message ) {
+            $matchesSite = $this->messageMatchesSite( $message, $site, $since );
+            $code = $matchesSite ? $site->parseCode( $message ) : NULL;
 
-            if ( $code !== NULL && $code !== '' ) {
-                return new TwoFactorCode(
+            $rows[] = $this->debugRow( is_int( $index ) ? $index : count( $rows ), $message, $matchesSite, $code );
+
+            if ( $resolvedCode === NULL && $code !== NULL && $code !== '' ) {
+                $resolvedCode = new TwoFactorCode(
                     $site->key(),
                     $code,
                     $message->getId(),
@@ -110,7 +123,9 @@ class Gofer2FA {
             }
         }
 
-        return NULL;
+        $this->debugMailboxRows( $rows );
+
+        return $resolvedCode;
     }
 
     /**
@@ -137,8 +152,10 @@ class Gofer2FA {
         $startedAt           = $this->asImmutable( $since ?: new DateTimeImmutable() );
         $deadline            = $this->asImmutable()->add( new DateInterval( sprintf( 'PT%dS', max( $timeoutSeconds, 1 ) ) ) );
         $pollIntervalSeconds = max( $pollIntervalSeconds, 1 );
+        $attempt             = 1;
 
         do {
+            $this->debug( sprintf( 'Gofer debug: mailbox poll attempt %d for site "%s".', $attempt, $siteKey ) );
             $code = $this->fetchCode( $siteKey, $startedAt, $limit );
 
             if ( $code !== NULL ) {
@@ -150,6 +167,7 @@ class Gofer2FA {
             }
 
             sleep( $pollIntervalSeconds );
+            $attempt++;
         } while ( TRUE );
 
         return NULL;
@@ -190,5 +208,129 @@ class Gofer2FA {
         }
 
         return new DateTimeImmutable();
+    }
+
+    private function debugFetchContext( ChallengeSiteInterface $site, MessageQuery $query ): void {
+        $this->debug( sprintf( 'Gofer debug: parser %s for site "%s".', get_class( $site ), $site->key() ) );
+        $this->debug( sprintf(
+            'Gofer debug: mailbox filters from=%s to=%s since=%s limit=%d',
+            $this->debugList( $query->fromAddresses() ),
+            $this->debugList( $query->toAddresses() ),
+            $query->since() ? $query->since()->format( DATE_ATOM ) : 'NULL',
+            $query->limit()
+        ) );
+    }
+
+    /**
+     * @param array<int, array<string, string>> $rows
+     */
+    private function debugMailboxRows( array $rows ): void {
+        if ( !$this->debug ) {
+            return;
+        }
+
+        echo "Gofer debug: mailbox rows\n";
+
+        if ( $rows === [] ) {
+            echo "(no messages returned)\n";
+
+            return;
+        }
+
+        $columns = [
+            [ 'label' => '#', 'key' => 'index', 'width' => 3 ],
+            [ 'label' => 'ID', 'key' => 'id', 'width' => 18 ],
+            [ 'label' => 'FROM', 'key' => 'from', 'width' => 28 ],
+            [ 'label' => 'TO', 'key' => 'to', 'width' => 28 ],
+            [ 'label' => 'RECEIVED', 'key' => 'received_at', 'width' => 20 ],
+            [ 'label' => 'MATCH', 'key' => 'matches_site', 'width' => 7 ],
+            [ 'label' => 'CODE', 'key' => 'code', 'width' => 8 ],
+            [ 'label' => 'SUBJECT', 'key' => 'subject', 'width' => 40 ],
+        ];
+
+        echo $this->debugFormatRow( $columns, array_column( $columns, 'label' ) ) . PHP_EOL;
+        echo $this->debugFormatDivider( $columns ) . PHP_EOL;
+
+        foreach ( $rows as $row ) {
+            echo $this->debugFormatRow( $columns, [
+                $row['index'],
+                $row['id'],
+                $row['from'],
+                $row['to'],
+                $row['received_at'],
+                $row['matches_site'],
+                $row['code'],
+                $row['subject'],
+            ] ) . PHP_EOL;
+        }
+    }
+
+    private function debug( string $message ): void {
+        if ( !$this->debug ) {
+            return;
+        }
+
+        echo $message . PHP_EOL;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function debugRow( int $index, MailboxMessageInterface $message, bool $matchesSite, ?string $code ): array {
+        return [
+            'index' => (string) ( $index + 1 ),
+            'id' => $message->getId() ?? 'NULL',
+            'from' => $message->getFromAddress() ?? 'NULL',
+            'to' => $message->getToAddress() ?? 'NULL',
+            'received_at' => $message->getReceivedAt() ? $message->getReceivedAt()->format( 'Y-m-d H:i:s' ) : 'NULL',
+            'matches_site' => $matchesSite ? 'yes' : 'no',
+            'code' => $code ?? 'NULL',
+            'subject' => $message->getSubject() ?? 'NULL',
+        ];
+    }
+
+    /**
+     * @param array<int, array<string, int|string>> $columns
+     * @param array<int, string> $values
+     */
+    private function debugFormatRow( array $columns, array $values ): string {
+        $parts = [];
+
+        foreach ( $columns as $index => $column ) {
+            $parts[] = str_pad( $this->debugTruncate( $values[$index] ?? '', (int) $column['width'] ), (int) $column['width'] );
+        }
+
+        return implode( ' | ', $parts );
+    }
+
+    /**
+     * @param array<int, array<string, int|string>> $columns
+     */
+    private function debugFormatDivider( array $columns ): string {
+        $parts = [];
+
+        foreach ( $columns as $column ) {
+            $parts[] = str_repeat( '-', (int) $column['width'] );
+        }
+
+        return implode( '-+-', $parts );
+    }
+
+    private function debugList( array $values ): string {
+        return $values === [] ? '[]' : '[' . implode( ', ', $values ) . ']';
+    }
+
+    private function debugTruncate( string $value, int $width ): string {
+        $value = preg_replace( '/\s+/', ' ', trim( $value ) ) ?? '';
+
+        if ( strlen( $value ) <= $width ) {
+            return $value;
+        }
+
+        if ( $width <= 3 ) {
+            return substr( $value, 0, $width );
+        }
+
+        return substr( $value, 0, $width - 3 ) . '...';
     }
 }

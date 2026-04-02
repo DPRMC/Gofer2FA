@@ -236,4 +236,44 @@ class Gofer2FATest extends TestCase {
         $this->assertNotNull( $code );
         $this->assertSame( '334455', $code->code() );
     }
+
+    public function testDebugModeOutputsParserFiltersAndMailboxRows(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-debug-1',
+                'attacker@example.com',
+                'Wrong sender',
+                'Ignore this message.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:00:00' )
+            ),
+            new FakeMailboxMessage(
+                'message-debug-2',
+                'account-security-noreply@accountprotection.microsoft.com',
+                'Your Microsoft security code',
+                'Use security code 123456 to verify your sign in.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:01:00' )
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox )->setDebug( TRUE );
+
+        $since = new DateTimeImmutable( '2026-04-02T07:59:00+00:00' );
+
+        ob_start();
+        $code = $gofer->fetchCode( 'microsoft', $since, 10 );
+        $output = (string) ob_get_clean();
+
+        $this->assertNotNull( $code );
+        $this->assertStringContainsString( 'Gofer debug: parser DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite for site "microsoft".', $output );
+        $this->assertStringContainsString( 'Gofer debug: mailbox filters from=[account-security-noreply@accountprotection.microsoft.com] to=[] since=2026-04-02T07:59:00+00:00 limit=10', $output );
+        $this->assertStringContainsString( 'Gofer debug: mailbox rows', $output );
+        $this->assertStringContainsString( 'message-debug-1', $output );
+        $this->assertStringContainsString( 'message-debug-2', $output );
+        $this->assertStringContainsString( 'account-security-noreply@accountprotection.microsoft.com', $output );
+        $this->assertStringContainsString( 'yes', $output );
+        $this->assertStringContainsString( 'no', $output );
+        $this->assertStringContainsString( '123456', $output );
+    }
 }

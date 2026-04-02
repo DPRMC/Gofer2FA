@@ -57,6 +57,21 @@ $gofer = Gofer2FA::withDefaultSites($mailbox);
 $code = $gofer->waitForCode('microsoft', 90, 5);
 ```
 
+## Debugging
+
+```php
+$gofer = Gofer2FA::withDefaultSites($mailbox)
+    ->setDebug(true);
+
+$code = $gofer->fetchCode('microsoft');
+```
+
+When debug mode is enabled, Gofer writes useful mailbox-check information to the console:
+
+- the parser class being used
+- the mailbox filter criteria
+- a table showing the messages returned by the mailbox client for each check
+
 ## Custom site parser
 
 ```php
