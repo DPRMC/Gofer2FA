@@ -27,6 +27,7 @@
         "phpunit/phpunit": "^9.5.10"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-clover coverage.xml"
     }
 }

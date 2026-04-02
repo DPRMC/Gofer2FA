@@ -1,5 +1,11 @@
 # Gofer2FA
 
+[![Tests](https://github.com/DPRMC/Gofer2FA/actions/workflows/tests.yml/badge.svg)](https://github.com/DPRMC/Gofer2FA/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/DPRMC/Gofer2FA/graph/badge.svg?branch=main)](https://codecov.io/gh/DPRMC/Gofer2FA)
+[![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-777BB4?logo=php&logoColor=white)](composer.json)
+[![PHPUnit 9.5+](https://img.shields.io/badge/PHPUnit-9.5%2B-0F80C1?logo=phpunit&logoColor=white)](phpunit.xml.dist)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A PHP library for checking an email inbox for 2FA codes.
 
 ## What it provides
@@ -9,6 +15,12 @@ A PHP library for checking an email inbox for 2FA codes.
 - A site parser contract and a `Sites/` directory for company-specific sender matching and code extraction.
 - Starter site implementations for GitHub, Google, Microsoft, and Okta.
 - A callback adapter so existing application services can be wrapped quickly.
+
+## CI and Coverage
+
+- GitHub Actions runs the test suite on PHP `8.0` and `8.3`.
+- Codecov uploads a Clover coverage report generated on the PHP `8.3` job.
+- If Codecov requires a token for this repository, add `CODECOV_TOKEN` to the repository secrets in GitHub.
 
 ## Basic usage
 
