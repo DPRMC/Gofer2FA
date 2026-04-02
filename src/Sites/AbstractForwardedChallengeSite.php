@@ -17,20 +17,49 @@ use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
  */
 abstract class AbstractForwardedChallengeSite extends AbstractChallengeSite {
     /**
-     * Return the forwarded recipient addresses that identify this site's challenge emails.
+     * Return the plus-address tag that identifies this forwarded challenge site.
+     */
+    abstract public function forwardingTag(): string;
+
+    /**
+     * Forwarded challenge sites do not rely on sender matching.
      *
      * @return string[]
      */
-    abstract public function toAddresses(): array;
+    public function senderAddresses(): array {
+        return [];
+    }
 
     public function messageQuery( ?DateTimeInterface $since = NULL, int $limit = 25 ): MessageQuery {
-        return new MessageQuery( [], $since, $limit, $this->toAddresses() );
+        return new MessageQuery( [], $since, $limit );
     }
 
     public function matchesMessage( MailboxMessageInterface $message ): bool {
         $toAddress = strtolower( trim( (string) $message->getToAddress() ) );
-        $expectedRecipients = array_map( 'strtolower', $this->toAddresses() );
 
-        return $toAddress !== '' && in_array( $toAddress, $expectedRecipients, TRUE );
+        if ( $toAddress === '' ) {
+            return FALSE;
+        }
+
+        return $this->extractForwardingTag( $toAddress ) === strtolower( trim( $this->forwardingTag() ) );
+    }
+
+    protected function extractForwardingTag( string $toAddress ): ?string {
+        $parts = explode( '@', strtolower( trim( $toAddress ) ), 2 );
+
+        if ( count( $parts ) !== 2 ) {
+            return NULL;
+        }
+
+        $localPart = $parts[0];
+
+        if ( !str_contains( $localPart, '+' ) ) {
+            return NULL;
+        }
+
+        $localParts = explode( '+', $localPart, 2 );
+        $tag = trim( $localParts[1] ?? '' );
+
+        return $tag !== '' ? $tag : NULL;
     }
 }

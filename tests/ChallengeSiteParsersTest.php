@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 class ChallengeSiteParsersTest extends TestCase {
     public function testForwardedCostarParserExtractsCodeFromTextAttachment(): void {
-        $site = new ForwardedCostarChallengeSite( ['user2+costar@example.com'] );
+        $site = new ForwardedCostarChallengeSite();
         $message = new FakeMailboxMessage(
             'message-0',
             '9173313518@vzwpix.com',
@@ -35,11 +35,13 @@ class ChallengeSiteParsersTest extends TestCase {
 
         $this->assertSame( '132584', $site->parseCode( $message ) );
         $this->assertTrue( $site->matchesMessage( $message ) );
-        $this->assertSame( ['user2+costar@example.com'], $site->messageQuery()->toAddresses() );
+        $this->assertSame( 'costar', $site->forwardingTag() );
+        $this->assertSame( [], $site->senderAddresses() );
+        $this->assertSame( [], $site->messageQuery()->toAddresses() );
     }
 
     public function testForwardedCostarParserRejectsWrongRecipient(): void {
-        $site = new ForwardedCostarChallengeSite( ['user2+costar@example.com'] );
+        $site = new ForwardedCostarChallengeSite();
         $message = new FakeMailboxMessage(
             'message-0b',
             '9173313518@vzwpix.com',
@@ -55,6 +57,22 @@ class ChallengeSiteParsersTest extends TestCase {
                 ],
             ],
             'user2+other@example.com'
+        );
+
+        $this->assertFalse( $site->matchesMessage( $message ) );
+    }
+
+    public function testForwardedCostarParserRejectsRecipientWithoutPlusTag(): void {
+        $site = new ForwardedCostarChallengeSite();
+        $message = new FakeMailboxMessage(
+            'message-0c',
+            '9173313518@vzwpix.com',
+            'CoStar access code',
+            'See attachment for your code.',
+            NULL,
+            new DateTimeImmutable( '2026-04-02 08:00:00' ),
+            [],
+            'user@example.com'
         );
 
         $this->assertFalse( $site->matchesMessage( $message ) );

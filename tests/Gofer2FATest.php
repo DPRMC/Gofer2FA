@@ -128,6 +128,7 @@ class Gofer2FATest extends TestCase {
 
         $sites = $gofer->sites();
 
+        $this->assertArrayHasKey( 'costar', $sites );
         $this->assertArrayHasKey( 'github', $sites );
         $this->assertArrayHasKey( 'google', $sites );
         $this->assertArrayHasKey( 'microsoft', $sites );
@@ -156,13 +157,13 @@ class Gofer2FATest extends TestCase {
         ] );
 
         $gofer = new Gofer2FA( $mailbox );
-        $gofer->registerSite( new ForwardedCostarChallengeSite( ['user2+costar@example.com'] ) );
+        $gofer->registerSite( new ForwardedCostarChallengeSite() );
 
-        $code = $gofer->fetchCode( 'forwarded-costar' );
+        $code = $gofer->fetchCode( 'costar' );
 
         $this->assertNotNull( $code );
         $this->assertSame( '132584', $code->code() );
-        $this->assertSame( ['user2+costar@example.com'], $mailbox->queries()[0]->toAddresses() );
+        $this->assertSame( [], $mailbox->queries()[0]->toAddresses() );
         $this->assertSame( [], $mailbox->queries()[0]->fromAddresses() );
     }
 
@@ -187,9 +188,9 @@ class Gofer2FATest extends TestCase {
         ] );
 
         $gofer = new Gofer2FA( $mailbox );
-        $gofer->registerSite( new ForwardedCostarChallengeSite( ['user2+costar@example.com'] ) );
+        $gofer->registerSite( new ForwardedCostarChallengeSite() );
 
-        $this->assertNull( $gofer->fetchCode( 'forwarded-costar' ) );
+        $this->assertNull( $gofer->fetchCode( 'costar' ) );
     }
 
     public function testFetchCodeReturnsNullWhenParserFindsNoCode(): void {

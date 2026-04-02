@@ -11,6 +11,7 @@ use DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\Contracts\MessageMatchingChallengeSiteInterface;
+use DPRMC\Gofer2FA\Sites\ForwardedCostarChallengeSite;
 use DPRMC\Gofer2FA\Sites\GitHubChallengeSite;
 use DPRMC\Gofer2FA\Sites\GoogleChallengeSite;
 use DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite;
@@ -42,6 +43,7 @@ class Gofer2FA {
      */
     public static function withDefaultSites( MailboxClientInterface $mailboxClient ): self {
         return new self( $mailboxClient, new ChallengeSiteRegistry( [
+                                                                        new ForwardedCostarChallengeSite(),
                                                                         new GitHubChallengeSite(),
                                                                         new GoogleChallengeSite(),
                                                                         new MicrosoftChallengeSite(),
