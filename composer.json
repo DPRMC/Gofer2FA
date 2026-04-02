@@ -5,7 +5,12 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "DPRMC\\Gofer2fa\\": "src/"
+            "DPRMC\\Gofer2FA\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DPRMC\\Gofer2FA\\Tests\\": "tests/"
         }
     },
     "authors": [
@@ -15,5 +20,13 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {
+        "php": "^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5.10"
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
 }
