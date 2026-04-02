@@ -1,0 +1,19 @@
+{
+    "name": "dprmc/gofer2fa",
+    "description": "A php library to check email account for 2fa codes.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "DPRMC\\Gofer2fa\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Michael Drennen",
+            "email": "michaeldrennen74@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
