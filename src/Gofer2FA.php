@@ -18,6 +18,13 @@ use DPRMC\Gofer2FA\Sites\OktaChallengeSite;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
 use DPRMC\Gofer2FA\ValueObjects\TwoFactorCode;
 
+/**
+ * Main application service for finding 2FA codes in a mailbox.
+ *
+ * This class coordinates the full flow: resolve a registered site parser, build the mailbox query, fetch
+ * candidate messages, ask the site whether each message belongs to it, and return the first successfully
+ * parsed `TwoFactorCode`. It also provides polling behavior through `waitForCode()`.
+ */
 class Gofer2FA {
     private MailboxClientInterface $mailboxClient;
     private ChallengeSiteRegistry  $siteRegistry;

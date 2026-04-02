@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Sites;
 
+/**
+ * Built-in parser for Okta verification emails.
+ *
+ * It plugs into the standard sender-based site flow and extracts codes from the common wording found in
+ * Okta login challenge messages.
+ */
 class OktaChallengeSite extends AbstractChallengeSite {
     /**
      * Return the registry key for Okta challenge emails.

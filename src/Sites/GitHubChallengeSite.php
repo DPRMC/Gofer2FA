@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Sites;
 
+/**
+ * Built-in parser for GitHub verification emails.
+ *
+ * This class provides a ready-to-register site definition so `Gofer2FA::withDefaultSites()` can search
+ * GitHub emails immediately using GitHub sender matching and GitHub-specific code extraction patterns.
+ */
 class GitHubChallengeSite extends AbstractChallengeSite {
     /**
      * Return the registry key for GitHub challenge emails.

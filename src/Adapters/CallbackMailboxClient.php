@@ -9,6 +9,13 @@ use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
 use UnexpectedValueException;
 
+/**
+ * Mailbox client adapter that delegates inbox lookups to an application-provided callback.
+ *
+ * This is the main integration point for Laravel applications that already have mailbox access logic.
+ * `Gofer2FA` builds a `MessageQuery`, this client passes it to the callback, and returned payloads are
+ * normalized into mailbox message objects for the parser flow.
+ */
 class CallbackMailboxClient implements MailboxClientInterface {
     /**
      * @var callable

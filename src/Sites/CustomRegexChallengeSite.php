@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Sites;
 
+/**
+ * Configurable site parser built from caller-supplied sender addresses and regex patterns.
+ *
+ * This is the fastest way to add support for a new 2FA email format without creating a dedicated class.
+ * It plugs directly into the normal `Gofer2FA` flow through the shared behavior in `AbstractChallengeSite`.
+ */
 class CustomRegexChallengeSite extends AbstractChallengeSite {
     private string $key;
 

@@ -6,6 +6,12 @@ namespace DPRMC\Gofer2FA\Contracts;
 
 use DateTimeInterface;
 
+/**
+ * Contract for a normalized mailbox message used by the parsing pipeline.
+ *
+ * Mailbox adapters expose message metadata, body content, and decoded attachments through this interface
+ * so site implementations can match the correct email and extract the 2FA code.
+ */
 interface MailboxMessageInterface {
     /**
      * Return the mailbox provider's identifier for this message when available.

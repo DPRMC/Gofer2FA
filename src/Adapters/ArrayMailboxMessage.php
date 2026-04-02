@@ -10,6 +10,12 @@ use DPRMC\Gofer2FA\Contracts\MailboxAttachmentInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use UnexpectedValueException;
 
+/**
+ * Array-backed message adapter used to normalize mailbox-provider payloads into the library contract.
+ *
+ * This sits between application-specific mailbox APIs and `Gofer2FA`, allowing callers to supply raw
+ * arrays while the rest of the codebase works with a consistent `MailboxMessageInterface`.
+ */
 class ArrayMailboxMessage implements MailboxMessageInterface {
     private ?string $id;
     private ?string $fromAddress;

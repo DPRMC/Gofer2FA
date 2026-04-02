@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Sites;
 
+/**
+ * Built-in parser for Microsoft account security emails.
+ *
+ * This is one of the default site parsers used by `Gofer2FA::withDefaultSites()` and handles Microsoft's
+ * sender address and common security-code wording.
+ */
 class MicrosoftChallengeSite extends AbstractChallengeSite {
     /**
      * Return the registry key for Microsoft challenge emails.

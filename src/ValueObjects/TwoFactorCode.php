@@ -6,6 +6,12 @@ namespace DPRMC\Gofer2FA\ValueObjects;
 
 use DateTimeInterface;
 
+/**
+ * Value object representing a successfully parsed 2FA code and its source message metadata.
+ *
+ * This is the final output of the lookup flow. `Gofer2FA` returns it once a site parser extracts a code
+ * from a matching mailbox message, allowing callers to inspect both the code and where it came from.
+ */
 class TwoFactorCode {
     private string $siteKey;
     private string $code;

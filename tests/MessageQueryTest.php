@@ -54,4 +54,20 @@ class MessageQueryTest extends TestCase {
         $this->assertSame( ['another@example.com'], $updated->toAddresses() );
         $this->assertSame( ['sender@example.com'], $updated->fromAddresses() );
     }
+
+    public function testWithersPreserveRecipientAddresses(): void {
+        $since = new DateTimeImmutable( '2026-04-02 08:00:00' );
+        $query = new MessageQuery(
+            ['sender@example.com'],
+            $since,
+            10,
+            ['user2+costar@example.com']
+        );
+
+        $updatedSince = $query->withSince( new DateTimeImmutable( '2026-04-02 09:00:00' ) );
+        $updatedLimit = $query->withLimit( 20 );
+
+        $this->assertSame( ['user2+costar@example.com'], $updatedSince->toAddresses() );
+        $this->assertSame( ['user2+costar@example.com'], $updatedLimit->toAddresses() );
+    }
 }

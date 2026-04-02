@@ -11,6 +11,12 @@ use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\Contracts\MessageMatchingChallengeSiteInterface;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
 
+/**
+ * Base implementation for standard site parsers that match messages and extract codes from textual content.
+ *
+ * Most concrete site classes extend this class. It provides default sender-based message matching, default
+ * mailbox-query construction, and shared helpers for combining subject/body/attachment text before parsing.
+ */
 abstract class AbstractChallengeSite implements ChallengeSiteInterface, MessageMatchingChallengeSiteInterface {
     /**
      * Parse a 2FA code by inspecting the message subject, body, and decoded attachment content.

@@ -6,6 +6,12 @@ namespace DPRMC\Gofer2FA\ValueObjects;
 
 use DateTimeInterface;
 
+/**
+ * Immutable value object describing how a mailbox should be searched for candidate messages.
+ *
+ * `Gofer2FA` or a custom site implementation builds this object before calling the mailbox client. The
+ * client can use sender filters, recipient filters, a received-after timestamp, and a limit to narrow the inbox search.
+ */
 class MessageQuery {
     /**
      * @var string[]

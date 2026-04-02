@@ -7,6 +7,12 @@ namespace DPRMC\Gofer2FA;
 use DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface;
 use DPRMC\Gofer2FA\Exceptions\UnknownChallengeSite;
 
+/**
+ * Registry of challenge site parsers keyed by site name.
+ *
+ * `Gofer2FA` uses this registry to resolve the parser for a requested site key before it builds a mailbox
+ * query, filters candidate messages, and asks the site to extract a 2FA code.
+ */
 class ChallengeSiteRegistry {
     /**
      * @var array<string, \DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface>

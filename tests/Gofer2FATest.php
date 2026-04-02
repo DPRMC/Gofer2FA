@@ -166,6 +166,32 @@ class Gofer2FATest extends TestCase {
         $this->assertSame( [], $mailbox->queries()[0]->fromAddresses() );
     }
 
+    public function testFetchCodeIgnoresForwardedCostarMessagesWithWrongRecipient(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-forwarded-costar-wrong-to',
+                'forwarder@example.com',
+                'Fwd: CoStar access code',
+                'See attachment.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:06:00' ),
+                [
+                    [
+                        'filename' => 'costar-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Your one-time CoStar access code is 132584.',
+                    ],
+                ],
+                'user2+other@example.com'
+            ),
+        ] );
+
+        $gofer = new Gofer2FA( $mailbox );
+        $gofer->registerSite( new ForwardedCostarChallengeSite( ['user2+costar@example.com'] ) );
+
+        $this->assertNull( $gofer->fetchCode( 'forwarded-costar' ) );
+    }
+
     public function testFetchCodeReturnsNullWhenParserFindsNoCode(): void {
         $mailbox = new InMemoryMailboxClient( [
             new FakeMailboxMessage(

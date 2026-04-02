@@ -6,6 +6,12 @@ namespace DPRMC\Gofer2FA\Adapters;
 
 use DPRMC\Gofer2FA\Contracts\MailboxAttachmentInterface;
 
+/**
+ * Array-backed attachment adapter used to normalize mailbox-provider payloads into the library contract.
+ *
+ * Mailbox clients can return attachment data as plain arrays, and this adapter turns that data into a
+ * `MailboxAttachmentInterface` so site parsers can inspect decoded attachment content during code extraction.
+ */
 class ArrayMailboxAttachment implements MailboxAttachmentInterface {
     private ?string $filename;
     private ?string $contentType;
