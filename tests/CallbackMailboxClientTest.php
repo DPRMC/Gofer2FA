@@ -21,6 +21,13 @@ class CallbackMailboxClientTest extends TestCase {
                 'text_body' => 'G-123456',
                 'html_body' => '<p>G-123456</p>',
                 'received_at' => '2026-04-02T08:00:00+00:00',
+                'attachments' => [
+                    [
+                        'filename' => 'code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Backup code 654321',
+                    ],
+                ],
             ]];
         } );
 
@@ -32,6 +39,8 @@ class CallbackMailboxClientTest extends TestCase {
         $this->assertSame( 'no-reply@accounts.google.com', $messages[0]->getFromAddress() );
         $this->assertSame( 'G-123456', $messages[0]->getTextBody() );
         $this->assertInstanceOf( DateTimeInterface::class, $messages[0]->getReceivedAt() );
+        $this->assertCount( 1, $messages[0]->getAttachments() );
+        $this->assertSame( 'Backup code 654321', $messages[0]->getAttachments()[0]->getContent() );
     }
 
     public function testItRejectsUnsupportedMessageTypes(): void {

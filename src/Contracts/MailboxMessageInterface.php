@@ -36,4 +36,11 @@ interface MailboxMessageInterface {
      * Return when the message was received by the mailbox provider.
      */
     public function getReceivedAt(): ?DateTimeInterface;
+
+    /**
+     * Return decoded text-capable attachments supplied with the message.
+     *
+     * @return array<int, \DPRMC\Gofer2FA\Contracts\MailboxAttachmentInterface>
+     */
+    public function getAttachments(): array;
 }

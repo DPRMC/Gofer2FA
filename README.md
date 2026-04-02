@@ -13,6 +13,7 @@ A PHP library for checking an email inbox for 2FA codes.
 - A main `Gofer2FA` service for polling an inbox for challenge codes.
 - A mailbox client contract so the package can work with any Laravel-side mail transport or inbox reader.
 - A site parser contract and a `Sites/` directory for company-specific sender matching and code extraction.
+- Attachment-aware parsing when the mailbox client provides decoded attachment text content.
 - Starter site implementations for GitHub, Google, Microsoft, and Okta.
 - A callback adapter so existing application services can be wrapped quickly.
 
@@ -44,6 +45,7 @@ $mailbox = new CallbackMailboxClient(function (MessageQuery $query) use ($transp
             'text_body' => $message['text'] ?? null,
             'html_body' => $message['html'] ?? null,
             'received_at' => $message['received_at'] ?? null,
+            'attachments' => $message['attachments'] ?? [],
         ];
     });
 });

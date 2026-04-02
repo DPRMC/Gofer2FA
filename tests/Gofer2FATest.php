@@ -150,4 +150,31 @@ class Gofer2FATest extends TestCase {
 
         $this->assertNull( $gofer->fetchCode( 'microsoft' ) );
     }
+
+    public function testFetchCodeCanParseCodeFromAttachmentContent(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-5',
+                'account-security-noreply@accountprotection.microsoft.com',
+                'Your Microsoft security code',
+                'Open the attached file for your code.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:05:00' ),
+                [
+                    [
+                        'filename' => 'security-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Use security code 334455 to verify your sign in.',
+                    ],
+                ]
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+
+        $code = $gofer->fetchCode( 'microsoft' );
+
+        $this->assertNotNull( $code );
+        $this->assertSame( '334455', $code->code() );
+    }
 }

@@ -6,7 +6,9 @@ namespace DPRMC\Gofer2FA\Adapters;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use DPRMC\Gofer2FA\Contracts\MailboxAttachmentInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
+use UnexpectedValueException;
 
 class ArrayMailboxMessage implements MailboxMessageInterface {
     private ?string $id;
@@ -15,6 +17,10 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
     private ?string $textBody;
     private ?string $htmlBody;
     private ?DateTimeInterface $receivedAt;
+    /**
+     * @var array<int, MailboxAttachmentInterface>
+     */
+    private array $attachments;
 
     /**
      * Create a mailbox message wrapper from a normalized attribute array.
@@ -28,6 +34,7 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
         $this->textBody = isset( $attributes['text_body'] ) ? (string) $attributes['text_body'] : NULL;
         $this->htmlBody = isset( $attributes['html_body'] ) ? (string) $attributes['html_body'] : NULL;
         $this->receivedAt = $this->normalizeDate( $attributes['received_at'] ?? NULL );
+        $this->attachments = $this->normalizeAttachments( $attributes['attachments'] ?? [] );
     }
 
     /**
@@ -73,6 +80,15 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
     }
 
     /**
+     * Return normalized attachment wrappers for the message.
+     *
+     * @return array<int, MailboxAttachmentInterface>
+     */
+    public function getAttachments(): array {
+        return $this->attachments;
+    }
+
+    /**
      * @param mixed $value
      */
     private function normalizeDate( $value ): ?DateTimeInterface {
@@ -85,5 +101,43 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
         }
 
         return NULL;
+    }
+
+    /**
+     * @param mixed $attachments
+     *
+     * @return array<int, MailboxAttachmentInterface>
+     */
+    private function normalizeAttachments( $attachments ): array {
+        if ( !is_iterable( $attachments ) ) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ( $attachments as $attachment ) {
+            $normalized[] = $this->normalizeAttachment( $attachment );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param mixed $attachment
+     */
+    private function normalizeAttachment( $attachment ): MailboxAttachmentInterface {
+        if ( $attachment instanceof MailboxAttachmentInterface ) {
+            return $attachment;
+        }
+
+        if ( is_array( $attachment ) ) {
+            return new ArrayMailboxAttachment( $attachment );
+        }
+
+        if ( is_string( $attachment ) ) {
+            return new ArrayMailboxAttachment( [ 'content' => $attachment ] );
+        }
+
+        throw new UnexpectedValueException( 'Mailbox message attachments must be MailboxAttachmentInterface instances, arrays, or strings.' );
     }
 }
