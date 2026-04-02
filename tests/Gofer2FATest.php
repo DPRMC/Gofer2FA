@@ -8,6 +8,7 @@ use DateInterval;
 use DateTimeImmutable;
 use DPRMC\Gofer2FA\Gofer2FA;
 use DPRMC\Gofer2FA\Sites\CustomRegexChallengeSite;
+use DPRMC\Gofer2FA\Sites\ForwardedCostarChallengeSite;
 use DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite;
 use DPRMC\Gofer2FA\Tests\Support\FakeMailboxMessage;
 use DPRMC\Gofer2FA\Tests\Support\InMemoryMailboxClient;
@@ -132,6 +133,37 @@ class Gofer2FATest extends TestCase {
         $this->assertArrayHasKey( 'microsoft', $sites );
         $this->assertArrayHasKey( 'okta', $sites );
         $this->assertInstanceOf( MicrosoftChallengeSite::class, $sites['microsoft'] );
+    }
+
+    public function testFetchCodeCanMatchForwardedCostarByToAddress(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-forwarded-costar',
+                'forwarder@example.com',
+                'Fwd: CoStar access code',
+                'See attachment.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:06:00' ),
+                [
+                    [
+                        'filename' => 'costar-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Your one-time CoStar access code is 132584.  If you wish to stop receiving these messages, reply "STOP" to opt-out. Reply "HELP" for help.',
+                    ],
+                ],
+                'user2+costar@example.com'
+            ),
+        ] );
+
+        $gofer = new Gofer2FA( $mailbox );
+        $gofer->registerSite( new ForwardedCostarChallengeSite( ['user2+costar@example.com'] ) );
+
+        $code = $gofer->fetchCode( 'forwarded-costar' );
+
+        $this->assertNotNull( $code );
+        $this->assertSame( '132584', $code->code() );
+        $this->assertSame( ['user2+costar@example.com'], $mailbox->queries()[0]->toAddresses() );
+        $this->assertSame( [], $mailbox->queries()[0]->fromAddresses() );
     }
 
     public function testFetchCodeReturnsNullWhenParserFindsNoCode(): void {

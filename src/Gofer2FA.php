@@ -10,6 +10,7 @@ use DateTimeInterface;
 use DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
+use DPRMC\Gofer2FA\Contracts\MessageMatchingChallengeSiteInterface;
 use DPRMC\Gofer2FA\Sites\GitHubChallengeSite;
 use DPRMC\Gofer2FA\Sites\GoogleChallengeSite;
 use DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite;
@@ -76,8 +77,10 @@ class Gofer2FA {
      * Search the mailbox once for the most recent matching code for a site.
      */
     public function fetchCode( string $siteKey, ?DateTimeInterface $since = NULL, int $limit = 25 ): ?TwoFactorCode {
-        $site  = $this->siteRegistry->get( $siteKey );
-        $query = new MessageQuery( $site->senderAddresses(), $since, $limit );
+        $site = $this->siteRegistry->get( $siteKey );
+        $query = $site instanceof MessageMatchingChallengeSiteInterface
+            ? $site->messageQuery( $since, $limit )
+            : new MessageQuery( $site->senderAddresses(), $since, $limit );
 
         foreach ( $this->mailboxClient->findMessages( $query ) as $message ) {
             if ( !$this->messageMatchesSite( $message, $site, $since ) ) {
@@ -148,11 +151,17 @@ class Gofer2FA {
         ChallengeSiteInterface  $site,
         ?DateTimeInterface      $since = NULL
     ): bool {
-        $fromAddress     = strtolower( trim( (string)$message->getFromAddress() ) );
-        $expectedSenders = array_map( 'strtolower', $site->senderAddresses() );
-
-        if ( $fromAddress === '' || !in_array( $fromAddress, $expectedSenders, TRUE ) ) {
+        if ( $site instanceof MessageMatchingChallengeSiteInterface && !$site->matchesMessage( $message ) ) {
             return FALSE;
+        }
+
+        if ( !$site instanceof MessageMatchingChallengeSiteInterface ) {
+            $fromAddress = strtolower( trim( (string) $message->getFromAddress() ) );
+            $expectedSenders = array_map( 'strtolower', $site->senderAddresses() );
+
+            if ( $fromAddress === '' || !in_array( $fromAddress, $expectedSenders, TRUE ) ) {
+                return FALSE;
+            }
         }
 
         if ( $since === NULL || $message->getReceivedAt() === NULL ) {

@@ -13,6 +13,7 @@ use UnexpectedValueException;
 class ArrayMailboxMessage implements MailboxMessageInterface {
     private ?string $id;
     private ?string $fromAddress;
+    private ?string $toAddress;
     private ?string $subject;
     private ?string $textBody;
     private ?string $htmlBody;
@@ -30,6 +31,7 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
     public function __construct( array $attributes ) {
         $this->id = isset( $attributes['id'] ) ? (string) $attributes['id'] : NULL;
         $this->fromAddress = isset( $attributes['from_address'] ) ? strtolower( trim( (string) $attributes['from_address'] ) ) : NULL;
+        $this->toAddress = isset( $attributes['to_address'] ) ? strtolower( trim( (string) $attributes['to_address'] ) ) : NULL;
         $this->subject = isset( $attributes['subject'] ) ? (string) $attributes['subject'] : NULL;
         $this->textBody = isset( $attributes['text_body'] ) ? (string) $attributes['text_body'] : NULL;
         $this->htmlBody = isset( $attributes['html_body'] ) ? (string) $attributes['html_body'] : NULL;
@@ -49,6 +51,13 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
      */
     public function getFromAddress(): ?string {
         return $this->fromAddress;
+    }
+
+    /**
+     * Return the normalized primary recipient address.
+     */
+    public function getToAddress(): ?string {
+        return $this->toAddress;
     }
 
     /**

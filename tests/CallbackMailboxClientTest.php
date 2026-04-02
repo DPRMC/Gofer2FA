@@ -17,6 +17,7 @@ class CallbackMailboxClientTest extends TestCase {
             return [[
                 'id' => 'message-1',
                 'from_address' => 'No-Reply@Accounts.Google.com',
+                'to_address' => 'User2+Costar@Example.com',
                 'subject' => 'Google verification',
                 'text_body' => 'G-123456',
                 'html_body' => '<p>G-123456</p>',
@@ -37,6 +38,7 @@ class CallbackMailboxClientTest extends TestCase {
         $this->assertInstanceOf( MailboxMessageInterface::class, $messages[0] );
         $this->assertSame( 'message-1', $messages[0]->getId() );
         $this->assertSame( 'no-reply@accounts.google.com', $messages[0]->getFromAddress() );
+        $this->assertSame( 'user2+costar@example.com', $messages[0]->getToAddress() );
         $this->assertSame( 'G-123456', $messages[0]->getTextBody() );
         $this->assertInstanceOf( DateTimeInterface::class, $messages[0]->getReceivedAt() );
         $this->assertCount( 1, $messages[0]->getAttachments() );

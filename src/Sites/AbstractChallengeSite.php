@@ -4,16 +4,30 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Sites;
 
+use DateTimeInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxAttachmentInterface;
 use DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
+use DPRMC\Gofer2FA\Contracts\MessageMatchingChallengeSiteInterface;
+use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
 
-abstract class AbstractChallengeSite implements ChallengeSiteInterface {
+abstract class AbstractChallengeSite implements ChallengeSiteInterface, MessageMatchingChallengeSiteInterface {
     /**
      * Parse a 2FA code by inspecting the message subject, body, and decoded attachment content.
      */
     public function parseCode( MailboxMessageInterface $message ): ?string {
         return $this->extractFromContent( $this->messageContent( $message ) );
+    }
+
+    public function messageQuery( ?DateTimeInterface $since = NULL, int $limit = 25 ): MessageQuery {
+        return new MessageQuery( $this->senderAddresses(), $since, $limit );
+    }
+
+    public function matchesMessage( MailboxMessageInterface $message ): bool {
+        $fromAddress = strtolower( trim( (string) $message->getFromAddress() ) );
+        $expectedSenders = array_map( 'strtolower', $this->senderAddresses() );
+
+        return $fromAddress !== '' && in_array( $fromAddress, $expectedSenders, TRUE );
     }
 
     protected function messageContent( MailboxMessageInterface $message ): string {

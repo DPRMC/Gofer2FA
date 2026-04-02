@@ -39,4 +39,19 @@ class MessageQueryTest extends TestCase {
         $this->assertSame( 50, $updatedLimit->limit() );
         $this->assertSame( $originalSince, $updatedLimit->since() );
     }
+
+    public function testItNormalizesRecipientAddresses(): void {
+        $query = new MessageQuery(
+            ['sender@example.com'],
+            NULL,
+            10,
+            [' User2+Costar@example.com ', '', 'user2+costar@example.com']
+        );
+
+        $updated = $query->withToAddresses( ['Another@example.com'] );
+
+        $this->assertSame( ['user2+costar@example.com'], $query->toAddresses() );
+        $this->assertSame( ['another@example.com'], $updated->toAddresses() );
+        $this->assertSame( ['sender@example.com'], $updated->fromAddresses() );
+    }
 }

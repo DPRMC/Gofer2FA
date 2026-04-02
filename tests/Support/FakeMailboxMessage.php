@@ -14,6 +14,7 @@ use UnexpectedValueException;
 class FakeMailboxMessage implements MailboxMessageInterface {
     private ?string $id;
     private ?string $fromAddress;
+    private ?string $toAddress;
     private ?string $subject;
     private ?string $textBody;
     private ?string $htmlBody;
@@ -30,10 +31,12 @@ class FakeMailboxMessage implements MailboxMessageInterface {
         ?string $textBody = NULL,
         ?string $htmlBody = NULL,
         ?DateTimeInterface $receivedAt = NULL,
-        array $attachments = []
+        array $attachments = [],
+        ?string $toAddress = NULL
     ) {
         $this->id = $id;
         $this->fromAddress = $fromAddress;
+        $this->toAddress = $toAddress;
         $this->subject = $subject;
         $this->textBody = $textBody;
         $this->htmlBody = $htmlBody;
@@ -47,6 +50,10 @@ class FakeMailboxMessage implements MailboxMessageInterface {
 
     public function getFromAddress(): ?string {
         return $this->fromAddress;
+    }
+
+    public function getToAddress(): ?string {
+        return $this->toAddress;
     }
 
     public function getSubject(): ?string {

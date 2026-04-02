@@ -18,6 +18,11 @@ interface MailboxMessageInterface {
     public function getFromAddress(): ?string;
 
     /**
+     * Return the normalized primary recipient email address for this message.
+     */
+    public function getToAddress(): ?string;
+
+    /**
      * Return the message subject line.
      */
     public function getSubject(): ?string;
