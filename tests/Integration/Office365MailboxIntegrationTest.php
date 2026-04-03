@@ -41,7 +41,7 @@ class Office365MailboxIntegrationTest extends TestCase {
         $siteKey = getenv( 'GOFER_O365_SITE_KEY' ) ?: 'microsoft';
         $timeout = max( 1, (int) ( getenv( 'GOFER_O365_TIMEOUT' ) ?: 30 ) );
         $pollInterval = max( 1, (int) ( getenv( 'GOFER_O365_POLL_INTERVAL' ) ?: 5 ) );
-        $since = $this->parseSince( getenv( 'GOFER_O365_SINCE' ) ?: NULL );
+        $since = $this->parseSince( '2026-04-02' );
 
         $code = $gofer->waitForCode( $siteKey, $timeout, $pollInterval, $since );
 
