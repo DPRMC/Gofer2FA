@@ -251,9 +251,16 @@ class Gofer2FATest extends TestCase {
                 'message-debug-2',
                 'account-security-noreply@accountprotection.microsoft.com',
                 'Your Microsoft security code',
-                'Use security code 123456 to verify your sign in.',
+                'Use security code 123456 to verify your sign in. This is a longer body so the debug output has something meaningful to truncate in the body column.',
                 NULL,
-                new DateTimeImmutable( '2026-04-02 08:01:00' )
+                new DateTimeImmutable( '2026-04-02 08:01:00' ),
+                [
+                    [
+                        'filename' => 'code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Use security code 123456 to verify your sign in.',
+                    ],
+                ]
             ),
         ] );
 
@@ -269,11 +276,14 @@ class Gofer2FATest extends TestCase {
         $this->assertStringContainsString( 'Gofer debug: parser DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite for site "microsoft".', $output );
         $this->assertStringContainsString( 'Gofer debug: mailbox filters from=[account-security-noreply@accountprotection.microsoft.com] to=[] since=2026-04-02T07:59:00+00:00 limit=10', $output );
         $this->assertStringContainsString( 'Gofer debug: mailbox rows', $output );
+        $this->assertStringContainsString( 'HAS ATTACH', $output );
+        $this->assertStringContainsString( 'BODY', $output );
         $this->assertStringContainsString( 'message-debug-1', $output );
         $this->assertStringContainsString( 'message-debug-2', $output );
         $this->assertStringContainsString( 'account-security-noreply@accountprotection.microsoft.com', $output );
         $this->assertStringContainsString( 'yes', $output );
         $this->assertStringContainsString( 'no', $output );
         $this->assertStringContainsString( '123456', $output );
+        $this->assertStringContainsString( 'Use security code 123456 to verify your sign', $output );
     }
 }

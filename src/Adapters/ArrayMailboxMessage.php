@@ -37,7 +37,13 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
     public function __construct( array $attributes ) {
         $this->id = isset( $attributes['id'] ) ? (string) $attributes['id'] : NULL;
         $this->fromAddress = isset( $attributes['from_address'] ) ? strtolower( trim( (string) $attributes['from_address'] ) ) : NULL;
-        $this->toAddress = isset( $attributes['to_address'] ) ? strtolower( trim( (string) $attributes['to_address'] ) ) : NULL;
+        $this->toAddress = $this->normalizeAddressValue(
+            $attributes['to_address']
+            ?? $attributes['to']
+            ?? $attributes['recipient']
+            ?? $attributes['recipients']
+            ?? NULL
+        );
         $this->subject = isset( $attributes['subject'] ) ? (string) $attributes['subject'] : NULL;
         $this->textBody = isset( $attributes['text_body'] ) ? (string) $attributes['text_body'] : NULL;
         $this->htmlBody = isset( $attributes['html_body'] ) ? (string) $attributes['html_body'] : NULL;
@@ -116,6 +122,23 @@ class ArrayMailboxMessage implements MailboxMessageInterface {
         }
 
         return NULL;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function normalizeAddressValue( $value ): ?string {
+        if ( is_array( $value ) ) {
+            $value = $value[0] ?? NULL;
+        }
+
+        if ( !is_string( $value ) ) {
+            return NULL;
+        }
+
+        $value = strtolower( trim( $value ) );
+
+        return $value !== '' ? $value : NULL;
     }
 
     /**

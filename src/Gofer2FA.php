@@ -246,8 +246,10 @@ class Gofer2FA {
             [ 'label' => 'TO', 'key' => 'to', 'width' => 28 ],
             [ 'label' => 'RECEIVED', 'key' => 'received_at', 'width' => 20 ],
             [ 'label' => 'MATCH', 'key' => 'matches_site', 'width' => 7 ],
+            [ 'label' => 'HAS ATTACH', 'key' => 'has_attachment', 'width' => 10 ],
             [ 'label' => 'CODE', 'key' => 'code', 'width' => 8 ],
             [ 'label' => 'SUBJECT', 'key' => 'subject', 'width' => 40 ],
+            [ 'label' => 'BODY', 'key' => 'body', 'width' => 48 ],
         ];
 
         echo $this->debugFormatRow( $columns, array_column( $columns, 'label' ) ) . PHP_EOL;
@@ -261,8 +263,10 @@ class Gofer2FA {
                 $row['to'],
                 $row['received_at'],
                 $row['matches_site'],
+                $row['has_attachment'],
                 $row['code'],
                 $row['subject'],
+                $row['body'],
             ] ) . PHP_EOL;
         }
     }
@@ -286,8 +290,10 @@ class Gofer2FA {
             'to' => $message->getToAddress() ?? 'NULL',
             'received_at' => $message->getReceivedAt() ? $message->getReceivedAt()->format( 'Y-m-d H:i:s' ) : 'NULL',
             'matches_site' => $matchesSite ? 'yes' : 'no',
+            'has_attachment' => $message->getAttachments() === [] ? 'no' : 'yes',
             'code' => $code ?? 'NULL',
             'subject' => $message->getSubject() ?? 'NULL',
+            'body' => $this->debugBodyPreview( $message ),
         ];
     }
 
@@ -334,5 +340,19 @@ class Gofer2FA {
         }
 
         return substr( $value, 0, $width - 3 ) . '...';
+    }
+
+    private function debugBodyPreview( MailboxMessageInterface $message ): string {
+        $body = $message->getTextBody();
+
+        if ( $body === NULL || trim( $body ) === '' ) {
+            $body = strip_tags( (string) $message->getHtmlBody() );
+        }
+
+        if ( $body === NULL || trim( $body ) === '' ) {
+            return 'NULL';
+        }
+
+        return preg_replace( '/\s+/', ' ', trim( $body ) ) ?? 'NULL';
     }
 }

@@ -57,6 +57,8 @@ $gofer = Gofer2FA::withDefaultSites($mailbox);
 $code = $gofer->waitForCode('microsoft', 90, 5);
 ```
 
+`ArrayMailboxMessage` prefers `to_address`, but it can also infer the recipient from common mailbox keys such as `to`, `recipient`, or `recipients[0]`.
+
 ## Debugging
 
 ```php

@@ -52,6 +52,22 @@ class ArrayMailboxMessageTest extends TestCase {
         $this->assertSame( [], $message->getAttachments() );
     }
 
+    public function testItInfersToAddressFromCommonMailboxKeys(): void {
+        $fromToKey = new ArrayMailboxMessage( [
+            'to' => ' User2+Costar@Example.com ',
+        ] );
+        $fromRecipientKey = new ArrayMailboxMessage( [
+            'recipient' => ' User3+Costar@Example.com ',
+        ] );
+        $fromRecipientsKey = new ArrayMailboxMessage( [
+            'recipients' => [' User4+Costar@Example.com ', 'ignored@example.com'],
+        ] );
+
+        $this->assertSame( 'user2+costar@example.com', $fromToKey->getToAddress() );
+        $this->assertSame( 'user3+costar@example.com', $fromRecipientKey->getToAddress() );
+        $this->assertSame( 'user4+costar@example.com', $fromRecipientsKey->getToAddress() );
+    }
+
     public function testItRejectsUnsupportedAttachmentTypes(): void {
         $this->expectException( UnexpectedValueException::class );
         $this->expectExceptionMessage( 'Mailbox message attachments must be MailboxAttachmentInterface instances, arrays, or strings.' );
