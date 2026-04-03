@@ -6,6 +6,7 @@ namespace DPRMC\Gofer2FA\Tests;
 
 use DateInterval;
 use DateTimeImmutable;
+use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Gofer2FA;
 use DPRMC\Gofer2FA\Sites\CustomRegexChallengeSite;
 use DPRMC\Gofer2FA\Sites\ForwardedCostarChallengeSite;
@@ -13,6 +14,7 @@ use DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite;
 use DPRMC\Gofer2FA\Tests\Support\FakeMailboxMessage;
 use DPRMC\Gofer2FA\Tests\Support\InMemoryMailboxClient;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 class Gofer2FATest extends TestCase {
     public function testFetchCodeReturnsParsedCodeForMatchingSender(): void {
@@ -121,6 +123,50 @@ class Gofer2FATest extends TestCase {
         $this->assertNotNull( $code );
         $this->assertSame( '998877', $code->code() );
         $this->assertCount( 1, $mailbox->queries() );
+    }
+
+    public function testWaitForCodeCanDeleteTheMatchedEmailAfterReadingTheCode(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-delete-1',
+                'account-security-noreply@accountprotection.microsoft.com',
+                'Your Microsoft security code',
+                'Use security code 556677 to verify your sign in.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:00:10' )
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+
+        $code = $gofer->waitForCode( 'microsoft', 1, 1, new DateTimeImmutable( '2026-04-02 08:00:00' ), 25, TRUE );
+
+        $this->assertNotNull( $code );
+        $this->assertSame( [ 'message-delete-1' ], $mailbox->deletedMessageIds() );
+    }
+
+    public function testWaitForCodeRejectsDeleteAfterReadWhenMailboxClientDoesNotSupportDeletion(): void {
+        $mailbox = new class implements MailboxClientInterface {
+            public function findMessages( \DPRMC\Gofer2FA\ValueObjects\MessageQuery $query ): iterable {
+                return [
+                    new FakeMailboxMessage(
+                        'message-nodelete-1',
+                        'account-security-noreply@accountprotection.microsoft.com',
+                        'Your Microsoft security code',
+                        'Use security code 556677 to verify your sign in.',
+                        NULL,
+                        new DateTimeImmutable( '2026-04-02 08:00:10' )
+                    ),
+                ];
+            }
+        };
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'does not support deleting messages' );
+
+        $gofer->waitForCode( 'microsoft', 1, 1, new DateTimeImmutable( '2026-04-02 08:00:00' ), 25, TRUE );
     }
 
     public function testSitesReturnsRegisteredSites(): void {

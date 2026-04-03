@@ -54,4 +54,30 @@ class CallbackMailboxClientTest extends TestCase {
 
         iterator_to_array( $client->findMessages( new MessageQuery() ) );
     }
+
+    public function testItDelegatesMessageDeletionWhenConfigured(): void {
+        $deletedMessageIds = [];
+        $client = new CallbackMailboxClient(
+            static function (): array {
+                return [];
+            },
+            static function ( string $messageId ) use ( &$deletedMessageIds ): void {
+                $deletedMessageIds[] = $messageId;
+            }
+        );
+
+        $client->deleteMessage( 'message-1' );
+
+        $this->assertSame( [ 'message-1' ], $deletedMessageIds );
+    }
+
+    public function testItRejectsDeletionWhenNoDeleteResolverWasConfigured(): void {
+        $client = new CallbackMailboxClient( static function (): array {
+            return [];
+        } );
+
+        $this->expectException( UnexpectedValueException::class );
+
+        $client->deleteMessage( 'message-1' );
+    }
 }

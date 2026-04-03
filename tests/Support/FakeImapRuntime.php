@@ -29,6 +29,11 @@ class FakeImapRuntime implements ImapRuntimeInterface {
     public array $searchCriteria = [];
     public bool $opened = FALSE;
     public bool $closed = FALSE;
+    /**
+     * @var array<int, int>
+     */
+    public array $deletedMessages = [];
+    public int $expungeCount = 0;
 
     /**
      * @param array<string, mixed> $parameters
@@ -89,5 +94,19 @@ class FakeImapRuntime implements ImapRuntimeInterface {
      */
     public function fetchBody( $stream, int $messageNumber, string $section, int $options = 0 ): string {
         return $this->bodies[$messageNumber . ':' . $section] ?? '';
+    }
+
+    /**
+     * @param mixed $stream
+     */
+    public function deleteMessage( $stream, int $messageNumber, int $options = 0 ): void {
+        $this->deletedMessages[] = $messageNumber;
+    }
+
+    /**
+     * @param mixed $stream
+     */
+    public function expunge( $stream ): void {
+        $this->expungeCount++;
     }
 }

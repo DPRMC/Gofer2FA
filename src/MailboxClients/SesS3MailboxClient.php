@@ -6,6 +6,7 @@ namespace DPRMC\Gofer2FA\MailboxClients;
 
 use DateTimeImmutable;
 use DPRMC\Gofer2FA\Adapters\ArrayMailboxMessage;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\Mime\MimeMessageParser;
@@ -18,7 +19,7 @@ use RuntimeException;
  * This client lists MIME message objects in S3, downloads the newest raw messages, parses them through
  * `MimeMessageParser`, and yields normalized mailbox message objects for Gofer.
  */
-class SesS3MailboxClient implements MailboxClientInterface {
+class SesS3MailboxClient implements DeletableMailboxClientInterface {
     private string $accessKeyId;
     private string $secretAccessKey;
     private string $region;
@@ -67,6 +68,13 @@ class SesS3MailboxClient implements MailboxClientInterface {
         foreach ( $this->fetchNormalizedMessages( $query ) as $message ) {
             yield new ArrayMailboxMessage( $message );
         }
+    }
+
+    /**
+     * Delete a raw SES/S3 message object by S3 object key.
+     */
+    public function deleteMessage( string $messageId ): void {
+        $this->signedRequest( 'DELETE', '/' . str_replace( '%2F', '/', rawurlencode( $messageId ) ) );
     }
 
     /**
@@ -120,7 +128,7 @@ class SesS3MailboxClient implements MailboxClientInterface {
             $query['prefix'] = $this->prefix . '/';
         }
 
-        $response = $this->signedGet( '/', $query );
+        $response = $this->signedRequest( 'GET', '/', $query );
         $xml = @simplexml_load_string( $response['body'] );
 
         if ( $xml === FALSE ) {
@@ -140,7 +148,7 @@ class SesS3MailboxClient implements MailboxClientInterface {
     }
 
     private function getObject( string $key ): string {
-        $response = $this->signedGet( '/' . str_replace( '%2F', '/', rawurlencode( $key ) ) );
+        $response = $this->signedRequest( 'GET', '/' . str_replace( '%2F', '/', rawurlencode( $key ) ) );
 
         return $response['body'];
     }
@@ -150,7 +158,7 @@ class SesS3MailboxClient implements MailboxClientInterface {
      *
      * @return array{status:int,body:string}
      */
-    private function signedGet( string $canonicalUri, array $query = [] ): array {
+    private function signedRequest( string $method, string $canonicalUri, array $query = [] ): array {
         $amzDate = gmdate( 'Ymd\THis\Z' );
         $dateStamp = gmdate( 'Ymd' );
         ksort( $query );
@@ -182,7 +190,7 @@ class SesS3MailboxClient implements MailboxClientInterface {
         $canonicalRequest = implode(
             "\n",
             [
-                'GET',
+                $method,
                 $canonicalUri,
                 $canonicalQueryString,
                 $canonicalHeaders,
@@ -222,7 +230,7 @@ class SesS3MailboxClient implements MailboxClientInterface {
 
         $url = $this->endpointBase . $canonicalUri . ( $canonicalQueryString !== '' ? '?' . $canonicalQueryString : '' );
 
-        return $this->httpRequest( 'GET', $url, $requestHeaders );
+        return $this->httpRequest( $method, $url, $requestHeaders );
     }
 
     private function signatureKey( string $dateStamp ): string {

@@ -67,4 +67,18 @@ interface ImapRuntimeInterface {
      * @param mixed $stream
      */
     public function fetchBody( $stream, int $messageNumber, string $section, int $options = 0 ): string;
+
+    /**
+     * Mark a message for deletion.
+     *
+     * @param mixed $stream
+     */
+    public function deleteMessage( $stream, int $messageNumber, int $options = 0 ): void;
+
+    /**
+     * Permanently remove messages marked for deletion.
+     *
+     * @param mixed $stream
+     */
+    public function expunge( $stream ): void;
 }

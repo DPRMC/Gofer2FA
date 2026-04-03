@@ -6,6 +6,7 @@ namespace DPRMC\Gofer2FA\MailboxClients;
 
 use DateTimeImmutable;
 use DPRMC\Gofer2FA\Adapters\ArrayMailboxMessage;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\ImapRuntimeInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
@@ -18,7 +19,7 @@ use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
  * This client owns IMAP-specific message reading and normalization so callers no longer need to translate
  * message metadata, body parts, and attachments into Gofer's expected array shape themselves.
  */
-class ImapMailboxClient implements MailboxClientInterface {
+class ImapMailboxClient implements DeletableMailboxClientInterface {
     private string $mailbox;
     private string $username;
     private string $password;
@@ -71,6 +72,43 @@ class ImapMailboxClient implements MailboxClientInterface {
         try {
             foreach ( $this->normalizedMessages( $stream, $query ) as $message ) {
                 yield new ArrayMailboxMessage( $message );
+            }
+        } finally {
+            $this->runtime->close( $stream );
+        }
+    }
+
+    /**
+     * Delete an IMAP message by normalized id or UID fallback.
+     */
+    public function deleteMessage( string $messageId ): void {
+        $stream = $this->runtime->open(
+            $this->mailbox,
+            $this->username,
+            $this->password,
+            $this->options,
+            $this->retries,
+            $this->parameters
+        );
+
+        try {
+            foreach ( $this->runtime->search( $stream, 'ALL' ) as $uid ) {
+                $overview = $this->runtime->fetchOverview( $stream, (string) $uid, $this->imapUidFlag() )[0] ?? NULL;
+
+                if ( !is_object( $overview ) ) {
+                    continue;
+                }
+
+                $normalizedId = isset( $overview->message_id ) ? trim( (string) $overview->message_id ) : (string) $uid;
+
+                if ( $normalizedId !== $messageId ) {
+                    continue;
+                }
+
+                $this->runtime->deleteMessage( $stream, (int) $uid, $this->imapUidFlag() );
+                $this->runtime->expunge( $stream );
+
+                return;
             }
         } finally {
             $this->runtime->close( $stream );

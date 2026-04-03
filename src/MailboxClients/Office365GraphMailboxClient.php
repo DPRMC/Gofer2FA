@@ -7,6 +7,7 @@ namespace DPRMC\Gofer2FA\MailboxClients;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DPRMC\Gofer2FA\Adapters\ArrayMailboxMessage;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
@@ -19,7 +20,7 @@ use RuntimeException;
  * Callers provide tenant credentials and mailbox coordinates, `findMessages()` performs the Graph calls,
  * and the client yields normalized `MailboxMessageInterface` objects for the rest of the parsing flow.
  */
-class Office365GraphMailboxClient implements MailboxClientInterface {
+class Office365GraphMailboxClient implements DeletableMailboxClientInterface {
     private string $tenantId;
     private string $clientId;
     private string $clientSecret;
@@ -63,6 +64,25 @@ class Office365GraphMailboxClient implements MailboxClientInterface {
         foreach ( $this->fetchNormalizedMessages( $query ) as $message ) {
             yield new ArrayMailboxMessage( $message );
         }
+    }
+
+    /**
+     * Delete a message from the Microsoft 365 mailbox by Graph message id.
+     */
+    public function deleteMessage( string $messageId ): void {
+        $this->httpRequest(
+            'DELETE',
+            sprintf(
+                '%s/users/%s/messages/%s',
+                $this->graphBaseUrl,
+                rawurlencode( $this->mailboxUser ),
+                rawurlencode( $messageId )
+            ),
+            [
+                'Authorization: Bearer ' . $this->accessToken(),
+                'Accept: application/json',
+            ]
+        );
     }
 
     /**

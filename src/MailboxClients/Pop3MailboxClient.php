@@ -6,6 +6,7 @@ namespace DPRMC\Gofer2FA\MailboxClients;
 
 use DateTimeImmutable;
 use DPRMC\Gofer2FA\Adapters\ArrayMailboxMessage;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\Contracts\Pop3RuntimeInterface;
@@ -19,7 +20,7 @@ use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
  * POP3 exposes raw RFC 822 messages rather than a structured message API, so this client retrieves the
  * newest messages, parses them through `MimeMessageParser`, and yields normalized mailbox message objects.
  */
-class Pop3MailboxClient implements MailboxClientInterface {
+class Pop3MailboxClient implements DeletableMailboxClientInterface {
     private string $host;
     private int $port;
     private string $username;
@@ -83,6 +84,35 @@ class Pop3MailboxClient implements MailboxClientInterface {
 
             foreach ( $this->normalizedMessages( $connection, $query ) as $message ) {
                 yield new ArrayMailboxMessage( $message );
+            }
+        } finally {
+            $this->runtime->close( $connection );
+        }
+    }
+
+    /**
+     * Delete a POP3 message by normalized id.
+     */
+    public function deleteMessage( string $messageId ): void {
+        $connection = $this->runtime->open( $this->host, $this->port, $this->useTls, $this->useStartTls, $this->timeout );
+
+        try {
+            $this->runtime->authenticate( $connection, $this->username, $this->password );
+
+            foreach ( $this->runtime->listMessages( $connection ) as $message ) {
+                $messageNumber = (int) $message['number'];
+                $parsed = $this->parser->parse(
+                    $this->runtime->retrieveMessage( $connection, $messageNumber ),
+                    (string) $messageNumber
+                );
+
+                if ( (string) ( $parsed['id'] ?? '' ) !== $messageId ) {
+                    continue;
+                }
+
+                $this->runtime->deleteMessage( $connection, $messageNumber );
+
+                return;
             }
         } finally {
             $this->runtime->close( $connection );

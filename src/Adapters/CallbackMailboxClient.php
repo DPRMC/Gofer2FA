@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DPRMC\Gofer2FA\Adapters;
 
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
@@ -16,17 +17,22 @@ use UnexpectedValueException;
  * `Gofer2FA` builds a `MessageQuery`, this client passes it to the callback, and returned payloads are
  * normalized into mailbox message objects for the parser flow.
  */
-class CallbackMailboxClient implements MailboxClientInterface {
+class CallbackMailboxClient implements DeletableMailboxClientInterface {
     /**
      * @var callable
      */
     private $resolver;
+    /**
+     * @var callable|null
+     */
+    private $deleter;
 
     /**
      * Create a mailbox client backed by an application-provided callback.
      */
-    public function __construct( callable $resolver ) {
+    public function __construct( callable $resolver, ?callable $deleter = NULL ) {
         $this->resolver = $resolver;
+        $this->deleter = $deleter;
     }
 
     /**
@@ -38,6 +44,17 @@ class CallbackMailboxClient implements MailboxClientInterface {
         foreach ( $messages as $message ) {
             yield $this->normalizeMessage( $message );
         }
+    }
+
+    /**
+     * Delete a normalized mailbox message through the optional application-provided deleter.
+     */
+    public function deleteMessage( string $messageId ): void {
+        if ( $this->deleter === NULL ) {
+            throw new UnexpectedValueException( 'This callback mailbox client was not configured with a delete resolver.' );
+        }
+
+        call_user_func( $this->deleter, $messageId );
     }
 
     /**

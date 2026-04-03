@@ -105,4 +105,48 @@ class Pop3MailboxClientTest extends TestCase {
         $this->assertFalse( $runtime->lastUseTls );
         $this->assertTrue( $runtime->lastUseStartTls );
     }
+
+    public function testItCanDeleteMessagesByNormalizedId(): void {
+        $runtime = new FakePop3Runtime();
+        $runtime->messages = [
+            [ 'number' => 1, 'size' => 1000 ],
+            [ 'number' => 2, 'size' => 1000 ],
+        ];
+        $runtime->rawMessages = [
+            1 => implode( "\r\n", [
+                'Message-ID: <pop-1@example.com>',
+                'Date: Fri, 03 Apr 2026 00:05:00 +0000',
+                'From: Forwarder <forwarder@example.com>',
+                'To: User <user+costar@example.com>',
+                'Subject: CoStar code',
+                'Content-Type: text/plain; charset=UTF-8',
+                '',
+                'See attached text file.',
+            ] ),
+            2 => implode( "\r\n", [
+                'Message-ID: <pop-2@example.com>',
+                'Date: Fri, 03 Apr 2026 00:06:00 +0000',
+                'From: Forwarder <forwarder@example.com>',
+                'To: User <user+other@example.com>',
+                'Subject: Wrong code',
+                'Content-Type: text/plain; charset=UTF-8',
+                '',
+                'Ignore this message.',
+            ] ),
+        ];
+
+        $client = new Pop3MailboxClient(
+            'pop.example.com',
+            995,
+            'user@example.com',
+            'secret',
+            TRUE,
+            30,
+            $runtime
+        );
+
+        $client->deleteMessage( '<pop-1@example.com>' );
+
+        $this->assertSame( [ 1 ], $runtime->deletedMessages );
+    }
 }

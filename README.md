@@ -231,6 +231,14 @@ When debug mode is enabled, Gofer writes useful mailbox-check information to the
 - the mailbox filter criteria
 - a table showing the messages returned by the mailbox client for each check
 
+If you want Gofer to delete the matched email after successfully reading the code, pass `true` as the final argument to `waitForCode()`:
+
+```php
+$code = $gofer->waitForCode('costar', 90, 5, null, 25, true);
+```
+
+Deletion only works when the selected mailbox client implements Gofer's deletable-mailbox contract. The built-in Office 365, Gmail, IMAP, POP3, and SES/S3 clients support it.
+
 ## Mailbox Inspection
 
 Use `printMailboxPage()` when you want to inspect the raw first page of messages visible to the mailbox client without involving a site parser:

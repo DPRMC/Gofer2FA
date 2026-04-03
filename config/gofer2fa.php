@@ -64,5 +64,6 @@ return [
         'timeout' => (int) env( 'GOFER2FA_POP3_TIMEOUT', 30 ),
 
         'resolver' => null,
+        'deleter' => null,
     ],
 ];

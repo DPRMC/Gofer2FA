@@ -8,6 +8,7 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\Contracts\MessageMatchingChallengeSiteInterface;
@@ -18,6 +19,7 @@ use DPRMC\Gofer2FA\Sites\MicrosoftChallengeSite;
 use DPRMC\Gofer2FA\Sites\OktaChallengeSite;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
 use DPRMC\Gofer2FA\ValueObjects\TwoFactorCode;
+use RuntimeException;
 
 /**
  * Main application service for finding 2FA codes in a mailbox.
@@ -211,6 +213,7 @@ class Gofer2FA {
      * @param int                    $pollIntervalSeconds Number of seconds to wait between polls.
      * @param DateTimeInterface|null $since               Only consider messages received at or after this timestamp.
      * @param int                    $limit               Maximum number of messages the mailbox client should inspect per poll.
+     * @param bool                   $deleteAfterRead     Delete the matched email after a code is successfully read.
      *
      * @throws \Exception
      */
@@ -219,7 +222,8 @@ class Gofer2FA {
         int                $timeoutSeconds = 60,
         int                $pollIntervalSeconds = 5,
         ?DateTimeInterface $since = NULL,
-        int                $limit = 25
+        int                $limit = 25,
+        bool               $deleteAfterRead = FALSE
     ): ?TwoFactorCode {
         $startedAt           = $this->asImmutable( $since ?: new DateTimeImmutable() );
         $deadline            = $this->asImmutable()->add( new DateInterval( sprintf( 'PT%dS', max( $timeoutSeconds, 1 ) ) ) );
@@ -231,6 +235,10 @@ class Gofer2FA {
             $code = $this->fetchCode( $siteKey, $startedAt, $limit );
 
             if ( $code !== NULL ) {
+                if ( $deleteAfterRead ) {
+                    $this->deleteReadMessage( $code );
+                }
+
                 return $code;
             }
 
@@ -243,6 +251,21 @@ class Gofer2FA {
         } while ( TRUE );
 
         return NULL;
+    }
+
+    /**
+     * Delete the mailbox message associated with a successfully read code.
+     */
+    private function deleteReadMessage( TwoFactorCode $code ): void {
+        if ( !$this->mailboxClient instanceof DeletableMailboxClientInterface ) {
+            throw new RuntimeException( 'This mailbox client does not support deleting messages after reading a code.' );
+        }
+
+        if ( $code->messageId() === NULL || trim( $code->messageId() ) === '' ) {
+            throw new RuntimeException( 'Cannot delete the matched email because it does not have a message id.' );
+        }
+
+        $this->mailboxClient->deleteMessage( $code->messageId() );
     }
 
     private function messageMatchesSite(

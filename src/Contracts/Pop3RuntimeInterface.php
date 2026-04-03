@@ -42,6 +42,13 @@ interface Pop3RuntimeInterface {
     public function retrieveMessage( $connection, int $messageNumber ): string;
 
     /**
+     * Mark a POP3 message for deletion.
+     *
+     * @param mixed $connection
+     */
+    public function deleteMessage( $connection, int $messageNumber ): void;
+
+    /**
      * Close the POP3 connection.
      *
      * @param mixed $connection

@@ -98,6 +98,22 @@ class NativeImapRuntime implements ImapRuntimeInterface {
         return is_string( $body ) ? $body : '';
     }
 
+    /**
+     * @param resource $stream
+     */
+    public function deleteMessage( $stream, int $messageNumber, int $options = 0 ): void {
+        $this->assertExtensionLoaded();
+        imap_delete( $stream, (string) $messageNumber, $options );
+    }
+
+    /**
+     * @param resource $stream
+     */
+    public function expunge( $stream ): void {
+        $this->assertExtensionLoaded();
+        imap_expunge( $stream );
+    }
+
     private function assertExtensionLoaded(): void {
         if ( !function_exists( 'imap_open' ) ) {
             throw new RuntimeException( 'The PHP IMAP extension is required to use ImapMailboxClient.' );

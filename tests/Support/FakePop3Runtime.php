@@ -20,6 +20,10 @@ class FakePop3Runtime implements Pop3RuntimeInterface {
     public bool $closed = FALSE;
     public bool $lastUseTls = FALSE;
     public bool $lastUseStartTls = FALSE;
+    /**
+     * @var array<int, int>
+     */
+    public array $deletedMessages = [];
 
     /**
      * @return string
@@ -53,6 +57,13 @@ class FakePop3Runtime implements Pop3RuntimeInterface {
      */
     public function retrieveMessage( $connection, int $messageNumber ): string {
         return $this->rawMessages[$messageNumber] ?? '';
+    }
+
+    /**
+     * @param mixed $connection
+     */
+    public function deleteMessage( $connection, int $messageNumber ): void {
+        $this->deletedMessages[] = $messageNumber;
     }
 
     /**

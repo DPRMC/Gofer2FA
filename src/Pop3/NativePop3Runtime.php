@@ -99,6 +99,15 @@ class NativePop3Runtime implements Pop3RuntimeInterface {
     }
 
     /**
+     * Mark a POP3 message for deletion with DELE.
+     *
+     * @param resource $connection
+     */
+    public function deleteMessage( $connection, int $messageNumber ): void {
+        $this->assertOkResponse( $this->sendCommand( $connection, 'DELE ' . $messageNumber ) );
+    }
+
+    /**
      * Close the POP3 connection with QUIT.
      *
      * @param resource $connection

@@ -87,12 +87,17 @@ class MailboxClientFactory {
 
             case 'callback':
                 $resolver = $config['resolver'] ?? NULL;
+                $deleter = $config['deleter'] ?? NULL;
 
                 if ( !is_callable( $resolver ) ) {
                     throw new InvalidArgumentException( 'Callback mailbox config requires a callable resolver.' );
                 }
 
-                return new CallbackMailboxClient( $resolver );
+                if ( $deleter !== NULL && !is_callable( $deleter ) ) {
+                    throw new InvalidArgumentException( 'Callback mailbox config deleter must be callable when provided.' );
+                }
+
+                return new CallbackMailboxClient( $resolver, $deleter );
         }
 
         throw new InvalidArgumentException( sprintf( 'Unsupported mailbox driver "%s".', $driver ) );

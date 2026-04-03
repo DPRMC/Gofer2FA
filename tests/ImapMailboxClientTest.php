@@ -110,4 +110,36 @@ class ImapMailboxClientTest extends TestCase {
         $this->assertSame( 'costar-code.txt', $messages[0]->getAttachments()[0]->getFilename() );
         $this->assertSame( 'Your one-time CoStar access code is 132584.', $messages[0]->getAttachments()[0]->getContent() );
     }
+
+    public function testItCanDeleteMessagesByNormalizedId(): void {
+        $runtime = new FakeImapRuntime();
+        $runtime->searchResults = [ 2001, 2002 ];
+        $runtime->overviews = [
+            2001 => [
+                (object) [
+                    'message_id' => '<message-2001@example.com>',
+                ],
+            ],
+            2002 => [
+                (object) [
+                    'message_id' => '<message-2002@example.com>',
+                ],
+            ],
+        ];
+
+        $client = new ImapMailboxClient(
+            '{imap.example.com:993/imap/ssl}INBOX',
+            'user@example.com',
+            'secret',
+            0,
+            0,
+            [],
+            $runtime
+        );
+
+        $client->deleteMessage( '<message-2001@example.com>' );
+
+        $this->assertSame( [ 2001 ], $runtime->deletedMessages );
+        $this->assertSame( 1, $runtime->expungeCount );
+    }
 }

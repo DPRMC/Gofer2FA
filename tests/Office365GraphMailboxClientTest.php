@@ -127,4 +127,44 @@ class Office365GraphMailboxClientTest extends TestCase {
         $this->assertSame( 'Your one-time CoStar access code is 132584.', $messages[0]->getAttachments()[0]->getContent() );
         $this->assertNull( $messages[0]->getAttachments()[1]->getContent() );
     }
+
+    public function testItDeletesMessagesByGraphMessageId(): void {
+        $requests = [];
+        $httpClient = function ( string $method, string $url, array $headers, ?string $body = NULL ) use ( &$requests ): array {
+            $requests[] = [ $method, $url ];
+
+            if ( $method === 'POST' && strpos( $url, '/oauth2/v2.0/token' ) !== FALSE ) {
+                return [
+                    'status' => 200,
+                    'body' => json_encode( [
+                        'access_token' => 'test-token',
+                        'expires_in' => 3600,
+                    ] ),
+                ];
+            }
+
+            if ( $method === 'DELETE' && strpos( $url, '/users/mailbox%40example.com/messages/message-1' ) !== FALSE ) {
+                return [
+                    'status' => 204,
+                    'body' => '',
+                ];
+            }
+
+            $this->fail( 'Unexpected Office 365 HTTP request: ' . $method . ' ' . $url );
+        };
+
+        $client = new Office365GraphMailboxClient(
+            'tenant-id',
+            'client-id',
+            'secret',
+            'mailbox@example.com',
+            'inbox',
+            'https://graph.microsoft.com/v1.0',
+            $httpClient
+        );
+
+        $client->deleteMessage( 'message-1' );
+
+        $this->assertSame( 'DELETE', $requests[1][0] );
+    }
 }

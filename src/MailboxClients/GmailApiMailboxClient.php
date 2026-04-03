@@ -6,6 +6,7 @@ namespace DPRMC\Gofer2FA\MailboxClients;
 
 use DateTimeImmutable;
 use DPRMC\Gofer2FA\Adapters\ArrayMailboxMessage;
+use DPRMC\Gofer2FA\Contracts\DeletableMailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxClientInterface;
 use DPRMC\Gofer2FA\Contracts\MailboxMessageInterface;
 use DPRMC\Gofer2FA\ValueObjects\MessageQuery;
@@ -17,7 +18,7 @@ use RuntimeException;
  * This class standardizes Gmail API message and attachment normalization inside the library so callers only
  * provide mailbox credentials and query parameters rather than hand-building normalized message arrays.
  */
-class GmailApiMailboxClient implements MailboxClientInterface {
+class GmailApiMailboxClient implements DeletableMailboxClientInterface {
     private string $userId;
     private string $clientId;
     private string $clientSecret;
@@ -58,6 +59,25 @@ class GmailApiMailboxClient implements MailboxClientInterface {
         foreach ( $this->fetchNormalizedMessages( $query ) as $message ) {
             yield new ArrayMailboxMessage( $message );
         }
+    }
+
+    /**
+     * Permanently delete a Gmail message by Gmail API message id.
+     */
+    public function deleteMessage( string $messageId ): void {
+        $this->httpRequest(
+            'DELETE',
+            sprintf(
+                '%s/users/%s/messages/%s',
+                $this->baseUrl,
+                rawurlencode( $this->userId ),
+                rawurlencode( $messageId )
+            ),
+            [
+                'Authorization: Bearer ' . $this->accessToken(),
+                'Accept: application/json',
+            ]
+        );
     }
 
     /**
