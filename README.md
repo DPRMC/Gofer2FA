@@ -74,6 +74,27 @@ When debug mode is enabled, Gofer writes useful mailbox-check information to the
 - the mailbox filter criteria
 - a table showing the messages returned by the mailbox client for each check
 
+## Mailbox Inspection
+
+Use `printMailboxPage()` when you want to inspect the raw first page of messages visible to the mailbox client without involving a site parser:
+
+```php
+$gofer->printMailboxPage(
+    new DateTimeImmutable('2026-04-02T00:00:00+00:00'),
+    25
+);
+```
+
+Use `printMailboxPageForSite()` when you want the same table output, but with the selected site's parser, mailbox filters, `MATCH` evaluation, and extracted `CODE` column applied:
+
+```php
+$gofer->printMailboxPageForSite(
+    'costar',
+    new DateTimeImmutable('2026-04-02T00:00:00+00:00'),
+    25
+);
+```
+
 ## Office 365 Integration Testing
 
 Gofer includes an opt-in PHPUnit integration scaffold for development against a real Office 365 mailbox.

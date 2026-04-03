@@ -84,6 +84,76 @@ class Gofer2FA {
     }
 
     /**
+     * Print the first page of mailbox messages in tabular format.
+     *
+     * This is a mailbox-inspection helper for development. It builds a `MessageQuery`, fetches one page
+     * from the mailbox client, and writes the same table format used by debug mode without requiring a
+     * specific site parser.
+     *
+     * @param string[] $fromAddresses
+     * @param string[] $toAddresses
+     */
+    public function printMailboxPage(
+        ?DateTimeInterface $since = NULL,
+        int                $limit = 25,
+        array              $fromAddresses = [],
+        array              $toAddresses = []
+    ): void {
+        $query = new MessageQuery( $fromAddresses, $since, $limit, $toAddresses );
+        $rows = [];
+
+        echo sprintf(
+            "Gofer mailbox page: filters from=%s to=%s since=%s limit=%d\n",
+            $this->debugList( $query->fromAddresses() ),
+            $this->debugList( $query->toAddresses() ),
+            $query->since() ? $query->since()->format( DATE_ATOM ) : 'NULL',
+            $query->limit()
+        );
+
+        foreach ( $this->mailboxClient->findMessages( $query ) as $index => $message ) {
+            $rows[] = $this->inspectionRow( is_int( $index ) ? $index : count( $rows ), $message );
+        }
+
+        $this->printMailboxRows( $rows, 'Gofer mailbox page: rows' );
+    }
+
+    /**
+     * Print the first page of mailbox messages for a specific site parser.
+     *
+     * This is a site-aware inspection helper for development. It resolves the parser, applies the
+     * parser's mailbox filters, evaluates whether each returned message matches the site, and includes
+     * any extracted code in the printed table.
+     */
+    public function printMailboxPageForSite(
+        string             $siteKey,
+        ?DateTimeInterface $since = NULL,
+        int                $limit = 25
+    ): void {
+        $site = $this->siteRegistry->get( $siteKey );
+        $query = $site instanceof MessageMatchingChallengeSiteInterface
+            ? $site->messageQuery( $since, $limit )
+            : new MessageQuery( $site->senderAddresses(), $since, $limit );
+        $rows = [];
+
+        echo sprintf( "Gofer mailbox page: parser %s for site \"%s\".\n", get_class( $site ), $site->key() );
+        echo sprintf(
+            "Gofer mailbox page: filters from=%s to=%s since=%s limit=%d\n",
+            $this->debugList( $query->fromAddresses() ),
+            $this->debugList( $query->toAddresses() ),
+            $query->since() ? $query->since()->format( DATE_ATOM ) : 'NULL',
+            $query->limit()
+        );
+
+        foreach ( $this->mailboxClient->findMessages( $query ) as $index => $message ) {
+            $matchesSite = $this->messageMatchesSite( $message, $site, $since );
+            $code = $matchesSite ? $site->parseCode( $message ) : NULL;
+            $rows[] = $this->debugRow( is_int( $index ) ? $index : count( $rows ), $message, $matchesSite, $code );
+        }
+
+        $this->printMailboxRows( $rows, 'Gofer mailbox page: rows' );
+    }
+
+    /**
      * Return all currently registered site parsers.
      *
      * @return array<string, \DPRMC\Gofer2FA\Contracts\ChallengeSiteInterface>
@@ -231,7 +301,14 @@ class Gofer2FA {
             return;
         }
 
-        echo "Gofer debug: mailbox rows\n";
+        $this->printMailboxRows( $rows, 'Gofer debug: mailbox rows' );
+    }
+
+    /**
+     * @param array<int, array<string, string>> $rows
+     */
+    private function printMailboxRows( array $rows, string $title ): void {
+        echo $title . "\n";
 
         if ( $rows === [] ) {
             echo "(no messages returned)\n";
@@ -292,6 +369,24 @@ class Gofer2FA {
             'matches_site' => $matchesSite ? 'yes' : 'no',
             'has_attachment' => $message->getAttachments() === [] ? 'no' : 'yes',
             'code' => $code ?? 'NULL',
+            'subject' => $message->getSubject() ?? 'NULL',
+            'body' => $this->debugBodyPreview( $message ),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function inspectionRow( int $index, MailboxMessageInterface $message ): array {
+        return [
+            'index' => (string) ( $index + 1 ),
+            'id' => $message->getId() ?? 'NULL',
+            'from' => $message->getFromAddress() ?? 'NULL',
+            'to' => $message->getToAddress() ?? 'NULL',
+            'received_at' => $message->getReceivedAt() ? $message->getReceivedAt()->format( 'Y-m-d H:i:s' ) : 'NULL',
+            'matches_site' => 'n/a',
+            'has_attachment' => $message->getAttachments() === [] ? 'no' : 'yes',
+            'code' => 'n/a',
             'subject' => $message->getSubject() ?? 'NULL',
             'body' => $this->debugBodyPreview( $message ),
         ];

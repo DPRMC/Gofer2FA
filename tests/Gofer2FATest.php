@@ -286,4 +286,98 @@ class Gofer2FATest extends TestCase {
         $this->assertStringContainsString( '123456', $output );
         $this->assertStringContainsString( 'Use security code 123456 to verify your sign', $output );
     }
+
+    public function testPrintMailboxPageOutputsTabularMailboxListing(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-page-1',
+                'forwarder@example.com',
+                'Fwd: CoStar access code',
+                'See attachment for the code.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:06:00' ),
+                [
+                    [
+                        'filename' => 'costar-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Your one-time CoStar access code is 132584.',
+                    ],
+                ],
+                'user2+costar@example.com'
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+        $since = new DateTimeImmutable( '2026-04-02T08:00:00+00:00' );
+
+        ob_start();
+        $gofer->printMailboxPage( $since, 10, [ 'forwarder@example.com' ], [ 'user2+costar@example.com' ] );
+        $output = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Gofer mailbox page: filters from=[forwarder@example.com] to=[user2+costar@example.com] since=2026-04-02T08:00:00+00:00 limit=10', $output );
+        $this->assertStringContainsString( 'Gofer mailbox page: rows', $output );
+        $this->assertStringContainsString( 'HAS ATTACH', $output );
+        $this->assertStringContainsString( 'BODY', $output );
+        $this->assertStringContainsString( 'message-page-1', $output );
+        $this->assertStringContainsString( 'user2+costar@example.com', $output );
+        $this->assertStringContainsString( 'n/a', $output );
+        $this->assertStringContainsString( 'yes', $output );
+        $this->assertSame( [ 'forwarder@example.com' ], $mailbox->queries()[0]->fromAddresses() );
+        $this->assertSame( [ 'user2+costar@example.com' ], $mailbox->queries()[0]->toAddresses() );
+    }
+
+    public function testPrintMailboxPageForSiteAppliesSiteParserAndLabelsOutput(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-site-page-1',
+                'forwarder@example.com',
+                'Fwd: CoStar access code',
+                'See attachment for the code.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:06:00' ),
+                [
+                    [
+                        'filename' => 'costar-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Your one-time CoStar access code is 132584.',
+                    ],
+                ],
+                'user2+costar@example.com'
+            ),
+            new FakeMailboxMessage(
+                'message-site-page-2',
+                'forwarder@example.com',
+                'Fwd: Other access code',
+                'See attachment for the code.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:07:00' ),
+                [
+                    [
+                        'filename' => 'other-code.txt',
+                        'content_type' => 'text/plain',
+                        'content' => 'Your one-time other access code is 999999.',
+                    ],
+                ],
+                'user2+other@example.com'
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+        $since = new DateTimeImmutable( '2026-04-02T08:00:00+00:00' );
+
+        ob_start();
+        $gofer->printMailboxPageForSite( 'costar', $since, 10 );
+        $output = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Gofer mailbox page: parser DPRMC\Gofer2FA\Sites\ForwardedCostarChallengeSite for site "costar".', $output );
+        $this->assertStringContainsString( 'Gofer mailbox page: filters from=[] to=[] since=2026-04-02T08:00:00+00:00 limit=10', $output );
+        $this->assertStringContainsString( 'Gofer mailbox page: rows', $output );
+        $this->assertStringContainsString( 'message-site-pa...', $output );
+        $this->assertStringContainsString( 'user2+costar@example.com', $output );
+        $this->assertStringContainsString( '132584', $output );
+        $this->assertStringContainsString( 'yes', $output );
+        $this->assertStringContainsString( 'no', $output );
+        $this->assertSame( [], $mailbox->queries()[0]->fromAddresses() );
+        $this->assertSame( [], $mailbox->queries()[0]->toAddresses() );
+    }
 }
