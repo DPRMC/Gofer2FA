@@ -283,6 +283,50 @@ class Gofer2FATest extends TestCase {
         $this->assertSame( '334455', $code->code() );
     }
 
+    public function testFetchCodeCanDeleteTheMatchedEmailAfterReadingTheCode(): void {
+        $mailbox = new InMemoryMailboxClient( [
+            new FakeMailboxMessage(
+                'message-fetch-delete-1',
+                'account-security-noreply@accountprotection.microsoft.com',
+                'Your Microsoft security code',
+                'Use security code 224466 to verify your sign in.',
+                NULL,
+                new DateTimeImmutable( '2026-04-02 08:00:10' )
+            ),
+        ] );
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+
+        $code = $gofer->fetchCode( 'microsoft', new DateTimeImmutable( '2026-04-02 08:00:00' ), 25, TRUE );
+
+        $this->assertNotNull( $code );
+        $this->assertSame( [ 'message-fetch-delete-1' ], $mailbox->deletedMessageIds() );
+    }
+
+    public function testFetchCodeRejectsDeleteAfterReadWhenMailboxClientDoesNotSupportDeletion(): void {
+        $mailbox = new class implements MailboxClientInterface {
+            public function findMessages( \DPRMC\Gofer2FA\ValueObjects\MessageQuery $query ): iterable {
+                return [
+                    new FakeMailboxMessage(
+                        'message-fetch-nodelete-1',
+                        'account-security-noreply@accountprotection.microsoft.com',
+                        'Your Microsoft security code',
+                        'Use security code 778899 to verify your sign in.',
+                        NULL,
+                        new DateTimeImmutable( '2026-04-02 08:00:10' )
+                    ),
+                ];
+            }
+        };
+
+        $gofer = Gofer2FA::withDefaultSites( $mailbox );
+
+        $this->expectException( RuntimeException::class );
+        $this->expectExceptionMessage( 'does not support deleting messages' );
+
+        $gofer->fetchCode( 'microsoft', new DateTimeImmutable( '2026-04-02 08:00:00' ), 25, TRUE );
+    }
+
     public function testDebugModeOutputsParserFiltersAndMailboxRows(): void {
         $mailbox = new InMemoryMailboxClient( [
             new FakeMailboxMessage(

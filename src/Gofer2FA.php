@@ -166,10 +166,17 @@ class Gofer2FA {
 
     /**
      * Search the mailbox once for the most recent matching code for a site.
+     *
+     * Use this when the challenge email is expected to already be present in the mailbox and you only
+     * want a single mailbox pass. If no matching message is currently visible, this returns `NULL`
+     * immediately instead of waiting for a later delivery.
+     *
+     * @param bool $deleteAfterRead Delete the matched email after a code is successfully read.
      */
     public function fetchCode( string $siteKey,
                                ?DateTimeInterface $since = NULL,
-                               int $limit = 25 ): ?TwoFactorCode {
+                               int $limit = 25,
+                               bool $deleteAfterRead = FALSE ): ?TwoFactorCode {
         $site = $this->siteRegistry->get( $siteKey );
         $query = $site instanceof MessageMatchingChallengeSiteInterface
             ? $site->messageQuery( $since, $limit )
@@ -199,6 +206,10 @@ class Gofer2FA {
 
         $this->debugMailboxRows( $rows );
 
+        if ( $resolvedCode !== NULL && $deleteAfterRead ) {
+            $this->deleteReadMessage( $resolvedCode );
+        }
+
         return $resolvedCode;
     }
 
@@ -207,6 +218,8 @@ class Gofer2FA {
      *
      * The search starts at `$since` when provided; otherwise it starts from the
      * moment this method is called so older messages are ignored during polling.
+     * Use this when the challenge email may arrive shortly after the call begins
+     * and you want Gofer to keep checking until it appears or the timeout is hit.
      *
      * @param string                 $siteKey             Registered site/parser key to search for.
      * @param int                    $timeoutSeconds      Maximum number of seconds to keep polling.
@@ -231,14 +244,11 @@ class Gofer2FA {
         $attempt             = 1;
 
         do {
+            // Poll until the code appears or the timeout window closes.
             $this->debug( sprintf( 'Gofer debug: mailbox poll attempt %d for site "%s".', $attempt, $siteKey ) );
-            $code = $this->fetchCode( $siteKey, $startedAt, $limit );
+            $code = $this->fetchCode( $siteKey, $startedAt, $limit, $deleteAfterRead );
 
             if ( $code !== NULL ) {
-                if ( $deleteAfterRead ) {
-                    $this->deleteReadMessage( $code );
-                }
-
                 return $code;
             }
 

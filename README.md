@@ -231,9 +231,10 @@ When debug mode is enabled, Gofer writes useful mailbox-check information to the
 - the mailbox filter criteria
 - a table showing the messages returned by the mailbox client for each check
 
-If you want Gofer to delete the matched email after successfully reading the code, pass `true` as the final argument to `waitForCode()`:
+If you want Gofer to delete the matched email after successfully reading the code, pass `true` as the final argument to `fetchCode()` or `waitForCode()`:
 
 ```php
+$code = $gofer->fetchCode('costar', null, 25, true);
 $code = $gofer->waitForCode('costar', 90, 5, null, 25, true);
 ```
 
