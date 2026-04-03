@@ -59,6 +59,46 @@ $code = $gofer->waitForCode('microsoft', 90, 5);
 
 `ArrayMailboxMessage` prefers `to_address`, but it can also infer the recipient from common mailbox keys such as `to`, `recipient`, or `recipients[0]`.
 
+## Standard mailbox clients
+
+Gofer now includes first-class mailbox clients that own provider-specific normalization inside the library. That removes the need to build `$normalizedMessage` arrays in application code.
+
+### Microsoft 365 / Graph
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+use DPRMC\Gofer2FA\MailboxClients\Office365GraphMailboxClient;
+
+$mailbox = new Office365GraphMailboxClient(
+    env('OFFICE365MAIL_TENANT'),
+    env('OFFICE365MAIL_CLIENT_ID'),
+    env('OFFICE365MAIL_CLIENT_SECRET'),
+    'fims@deerparkrd.com',
+    'inbox'
+);
+
+$gofer = Gofer2FA::withDefaultSites($mailbox);
+
+$code = $gofer->fetchCode('costar');
+```
+
+### IMAP
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+use DPRMC\Gofer2FA\MailboxClients\ImapMailboxClient;
+
+$mailbox = new ImapMailboxClient(
+    '{imap.example.com:993/imap/ssl}INBOX',
+    'user@example.com',
+    'secret'
+);
+
+$gofer = Gofer2FA::withDefaultSites($mailbox);
+```
+
+`Office365GraphMailboxClient` returns standardized `MailboxMessageInterface` objects backed by Microsoft Graph. `ImapMailboxClient` does the same for native IMAP mailboxes, including text-capable attachments.
+
 ## Debugging
 
 ```php
@@ -121,7 +161,7 @@ The tracked example file is:
 
 - `.env.gofer-o365.example`
 
-The local bootstrap already contains the Microsoft Graph mailbox lookup logic. It expects the environment variables above and does not need further code changes unless your tenant requires a different authentication flow.
+The local bootstrap now instantiates `Office365GraphMailboxClient` directly, so the integration test uses the same normalization path as production code. It does not need further code changes unless your tenant requires a different authentication flow.
 
 The bootstrap file may return:
 
