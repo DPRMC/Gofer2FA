@@ -30,3 +30,4 @@ Homestead.json
 auth.json
 
 phpunit.xml
+tests/Support/office365-bootstrap.local.php

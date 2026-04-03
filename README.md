@@ -74,6 +74,40 @@ When debug mode is enabled, Gofer writes useful mailbox-check information to the
 - the mailbox filter criteria
 - a table showing the messages returned by the mailbox client for each check
 
+## Office 365 Integration Testing
+
+Gofer includes an opt-in PHPUnit integration scaffold for development against a real Office 365 mailbox.
+
+- Unit tests remain the default: `composer test`
+- Run the Office 365 integration test explicitly: `composer test-integration`
+- The integration test is skipped unless `GOFER_O365_TEST_ENABLED=true`
+
+Setup flow:
+
+1. Copy `tests/Support/office365-bootstrap.example.php` to `tests/Support/office365-bootstrap.local.php`
+2. Implement your real mailbox lookup logic in that local bootstrap file
+3. Set environment variables before running the integration test:
+
+```bash
+export GOFER_O365_TEST_ENABLED=true
+export GOFER_O365_BOOTSTRAP_FILE=tests/Support/office365-bootstrap.local.php
+export GOFER_O365_SITE_KEY=costar
+export GOFER_O365_TIMEOUT=60
+export GOFER_O365_POLL_INTERVAL=5
+export GOFER_O365_SINCE=2026-04-03T12:00:00+00:00
+composer test-integration
+```
+
+The bootstrap file may return:
+
+- a ready-to-use `Gofer2FA` instance
+- a `MailboxClientInterface`
+- or a config array containing:
+  - `mailbox_client`
+  - optional `sites`
+  - optional `default_sites`
+  - optional `debug`
+
 ## Custom site parser
 
 ```php

@@ -27,7 +27,9 @@
         "phpunit/phpunit": "^9.0"
     },
     "scripts": {
-        "test": "phpunit",
+        "test": "phpunit --exclude-group integration",
+        "test-unit": "phpunit --exclude-group integration",
+        "test-integration": "phpunit --group integration",
         "test-coverage": "phpunit --coverage-clover coverage.xml"
     }
 }
