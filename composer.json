@@ -24,12 +24,26 @@
         "php": "^8.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.0"
+        "illuminate/config": "^9.0 || ^10.0",
+        "illuminate/container": "^9.0 || ^10.0",
+        "illuminate/support": "^9.0 || ^10.0",
+        "phpunit/phpunit": "^9.0",
+        "vlucas/phpdotenv": "^5.6"
     },
     "scripts": {
         "test": "phpunit --exclude-group integration",
         "test-unit": "phpunit --exclude-group integration",
         "test-integration": "phpunit --group integration",
         "test-coverage": "phpunit --coverage-clover coverage.xml"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DPRMC\\Gofer2FA\\Laravel\\Gofer2FAServiceProvider"
+            ],
+            "aliases": {
+                "Gofer2FA": "DPRMC\\Gofer2FA\\Laravel\\Facades\\Gofer2FA"
+            }
+        }
     }
 }

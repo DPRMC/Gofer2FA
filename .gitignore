@@ -34,3 +34,5 @@ auth.json
 phpunit.xml
 tests/Support/office365-bootstrap.local.php
 .env.gofer-o365.local
+tests/Support/gmail-bootstrap.local.php
+.env.gofer-gmail.local

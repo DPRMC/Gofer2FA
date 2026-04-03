@@ -97,7 +97,124 @@ $mailbox = new ImapMailboxClient(
 $gofer = Gofer2FA::withDefaultSites($mailbox);
 ```
 
-`Office365GraphMailboxClient` returns standardized `MailboxMessageInterface` objects backed by Microsoft Graph. `ImapMailboxClient` does the same for native IMAP mailboxes, including text-capable attachments.
+### Gmail API
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+use DPRMC\Gofer2FA\MailboxClients\GmailApiMailboxClient;
+
+$mailbox = new GmailApiMailboxClient(
+    'me',
+    env('GOFER_GMAIL_CLIENT_ID'),
+    env('GOFER_GMAIL_CLIENT_SECRET'),
+    env('GOFER_GMAIL_REFRESH_TOKEN')
+);
+
+$gofer = Gofer2FA::withDefaultSites($mailbox);
+```
+
+### SES / S3
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+use DPRMC\Gofer2FA\MailboxClients\SesS3MailboxClient;
+
+$mailbox = new SesS3MailboxClient(
+    env('AWS_ACCESS_KEY_ID'),
+    env('AWS_SECRET_ACCESS_KEY'),
+    env('AWS_DEFAULT_REGION'),
+    'my-inbound-mail-bucket',
+    'ses/inbound'
+);
+
+$gofer = Gofer2FA::withDefaultSites($mailbox);
+```
+
+For AWS temporary credentials, pass the session token:
+
+```php
+$mailbox = new SesS3MailboxClient(
+    env('AWS_ACCESS_KEY_ID'),
+    env('AWS_SECRET_ACCESS_KEY'),
+    env('AWS_DEFAULT_REGION'),
+    'my-inbound-mail-bucket',
+    'ses/inbound',
+    env('AWS_SESSION_TOKEN')
+);
+```
+
+### POP3
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+use DPRMC\Gofer2FA\MailboxClients\Pop3MailboxClient;
+
+$mailbox = new Pop3MailboxClient(
+    'pop.example.com',
+    995,
+    'user@example.com',
+    'secret'
+);
+
+$gofer = Gofer2FA::withDefaultSites($mailbox);
+```
+
+For explicit POP3 STARTTLS on port `110`:
+
+```php
+use DPRMC\Gofer2FA\MailboxClients\Pop3MailboxClient;
+
+$mailbox = Pop3MailboxClient::withStartTls(
+    'pop.example.com',
+    110,
+    'user@example.com',
+    'secret'
+);
+```
+
+`Office365GraphMailboxClient`, `GmailApiMailboxClient`, `SesS3MailboxClient`, `ImapMailboxClient`, and `Pop3MailboxClient` all return standardized `MailboxMessageInterface` objects. `SesS3MailboxClient` and `Pop3MailboxClient` normalize raw MIME messages through the library's MIME parser. `ImapMailboxClient` requires PHP's IMAP extension at runtime.
+
+## Laravel integration
+
+Gofer includes an optional Laravel service provider and package config:
+
+- service provider: `DPRMC\Gofer2FA\Laravel\Gofer2FAServiceProvider`
+- config file: `config/gofer2fa.php`
+
+Publish the config in your Laravel app:
+
+```bash
+php artisan vendor:publish --tag=gofer2fa-config
+```
+
+Example config:
+
+```php
+'mailbox' => [
+    'driver' => 'office365_graph',
+    'tenant' => env('OFFICE365MAIL_TENANT'),
+    'client_id' => env('OFFICE365MAIL_CLIENT_ID'),
+    'client_secret' => env('OFFICE365MAIL_CLIENT_SECRET'),
+    'mailbox_user' => env('GOFER2FA_MAILBOX_USER'),
+    'mail_folder' => env('GOFER2FA_MAIL_FOLDER', 'inbox'),
+],
+```
+
+Then resolve Gofer from the container:
+
+```php
+use DPRMC\Gofer2FA\Gofer2FA;
+
+$gofer = app(Gofer2FA::class);
+```
+
+Or use the Laravel facade alias:
+
+```php
+$code = \Gofer2FA::fetchCode('costar');
+```
+
+Custom site parsers can be appended through the `sites` array in `config/gofer2fa.php`.
 
 ## Debugging
 
@@ -172,6 +289,33 @@ The bootstrap file may return:
   - optional `sites`
   - optional `default_sites`
   - optional `debug`
+
+## Gmail Integration Testing
+
+Gofer also includes an opt-in PHPUnit integration scaffold for development against a real Gmail mailbox.
+
+- Run the Gmail integration test explicitly: `vendor/bin/phpunit --group integration tests/Integration/GmailMailboxIntegrationTest.php`
+- The Gmail integration test is skipped unless `GOFER_GMAIL_TEST_ENABLED=true`
+
+Setup flow:
+
+1. Copy `tests/Support/gmail-bootstrap.example.php` to `tests/Support/gmail-bootstrap.local.php`
+2. Copy `.env.gofer-gmail.example` to a local shell file or export the same variables directly
+3. Fill in the Google OAuth client and refresh token values
+4. Source the file and run the Gmail integration test:
+
+```bash
+set -a
+source .env.gofer-gmail.example
+set +a
+vendor/bin/phpunit --group integration tests/Integration/GmailMailboxIntegrationTest.php
+```
+
+The tracked example file is:
+
+- `.env.gofer-gmail.example`
+
+The local Gmail bootstrap instantiates `GmailApiMailboxClient` directly, so Gmail integration testing uses the same normalization path as production code.
 
 ## Custom site parser
 
