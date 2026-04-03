@@ -85,18 +85,22 @@ Gofer includes an opt-in PHPUnit integration scaffold for development against a 
 Setup flow:
 
 1. Copy `tests/Support/office365-bootstrap.example.php` to `tests/Support/office365-bootstrap.local.php`
-2. Implement your real mailbox lookup logic in that local bootstrap file
-3. Set environment variables before running the integration test:
+2. Copy `.env.gofer-o365.example` to a local shell file or export the same variables directly
+3. Fill in the Azure tenant, client, secret, and mailbox values
+4. Source the file and run the integration test:
 
 ```bash
-export GOFER_O365_TEST_ENABLED=true
-export GOFER_O365_BOOTSTRAP_FILE=tests/Support/office365-bootstrap.local.php
-export GOFER_O365_SITE_KEY=costar
-export GOFER_O365_TIMEOUT=60
-export GOFER_O365_POLL_INTERVAL=5
-export GOFER_O365_SINCE=2026-04-03T12:00:00+00:00
+set -a
+source .env.gofer-o365.example
+set +a
 composer test-integration
 ```
+
+The tracked example file is:
+
+- `.env.gofer-o365.example`
+
+The local bootstrap already contains the Microsoft Graph mailbox lookup logic. It expects the environment variables above and does not need further code changes unless your tenant requires a different authentication flow.
 
 The bootstrap file may return:
 
